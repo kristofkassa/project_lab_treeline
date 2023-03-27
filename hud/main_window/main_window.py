@@ -52,7 +52,7 @@ class CellularAutomataGridView(QGraphicsView):
         for i in range(GRID_SIZE + 1):
             self.scene.addLine(i * 10, 0, i * 10, GRID_SIZE * 10, pen)
 
-    def initializePopulation(self, percentage = 0.005):
+    def initializePopulation(self, percentage = 0.003):
         """Randomly occupy a certain percentage of the grid.
         """
 
