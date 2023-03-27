@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QGraphicsView, QGraphicsScene, QGroupBox, QHBoxLayout, QComboBox, QPushButton, QWidget, QLineEdit
 from PySide6 import QtGui, QtCore
 import random
-
+import pyqtgraph as pg
 
 GRID_SIZE=50
 
@@ -10,11 +10,15 @@ class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.
     """
 
-    def __init__(self):
+    def __init__(self, plotWidget):
         QGraphicsView.__init__(self)
+
+        self.plot_widget = plotWidget
+
+        
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
-        self.setGeometry(0, 0, 800, 600)
+        self.setGeometry(0, 0, 1200, 800)
 
         self.drawGrid()
         self.occupied_cells = set()
@@ -25,6 +29,9 @@ class CellularAutomataGridView(QGraphicsView):
 
         self.e = 0.15
         self.c = 0.2
+        self.time = 0
+        self.population_data = []
+        
 
     def setColonization(self, c_str):
         try:
@@ -97,6 +104,12 @@ class CellularAutomataGridView(QGraphicsView):
             rect = self.scene.addRect(i*10, j*10, 10, 10, pen, brush)
             rect.setZValue(-1)
 
+        # Update the population plot
+        population = len(self.occupied_cells)
+        self.population_data.append((self.time, population))
+        self.plot_widget.plot([t for t, _ in self.population_data], [p for _, p in self.population_data], pen='b')
+        self.time += 1
+
 
     def resetGrid(self):
         self.occupied_cells.clear()
@@ -120,9 +133,16 @@ class MainWindow(QMainWindow):
 
         super().__init__(parent)
 
-        self.gridView = CellularAutomataGridView()
+        # Add a plot widget to the layout to display population over time
+        population_plot = pg.PlotWidget()
+        population_plot.setBackground('w')
+        population_plot.setLabel('left', 'Population')
+        population_plot.setLabel('bottom', 'Time (s)')
+        population_plot.showGrid(x=True, y=True)
+
+        gridView = CellularAutomataGridView(population_plot)
         layout = QVBoxLayout()
-        layout.addWidget(self.gridView)
+        layout.addWidget(gridView)
 
         selectionArea = QGroupBox('Simulation parameters')
         selectionLayout = QHBoxLayout()
@@ -136,20 +156,19 @@ class MainWindow(QMainWindow):
         self.stopButton = QPushButton('&Stop')
         self.restetButton = QPushButton('&Reset')
 
-        self.startButton.clicked.connect(self.gridView.startTimer)
-        self.stopButton.clicked.connect(self.gridView.stopTimer)
-        self.restetButton.clicked.connect(self.gridView.resetGrid)
+        self.startButton.clicked.connect(gridView.startTimer)
+        self.stopButton.clicked.connect(gridView.stopTimer)
+        self.restetButton.clicked.connect(gridView.resetGrid)
 
         self.input_colon = QLineEdit()
         self.input_colon.setMaxLength(5)
         self.input_colon.setPlaceholderText("colonisation = 0.2")
-        self.input_colon.textChanged.connect(self.gridView.setColonization)
+        self.input_colon.textChanged.connect(gridView.setColonization)
 
         self.input_extinction = QLineEdit()
         self.input_extinction.setMaxLength(5)
         self.input_extinction.setPlaceholderText("extinction = 0.15")
-        self.input_extinction.textChanged.connect(self.gridView.setExtinction)
-
+        self.input_extinction.textChanged.connect(gridView.setExtinction)
 
         selectionLayout.addWidget(self.patternBox)
         selectionLayout.addWidget(self.startButton)
@@ -158,15 +177,15 @@ class MainWindow(QMainWindow):
         selectionLayout.addWidget(self.stopButton)
         selectionLayout.addWidget(self.restetButton)
 
-        layout.addWidget(selectionArea)
-
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-        layout.addWidget(self.gridView)
+        layout.addWidget(selectionArea)
+        layout.addWidget(gridView)
+        layout.addWidget(population_plot, 2)
 
-        self.setGeometry(0, 0, 800, 600)
+        self.setGeometry(0, 0, 1200, 800)
         version = "v2.0"
         self.setWindowTitle("Treeline Fractals " + version)
 
