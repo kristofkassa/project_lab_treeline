@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QGraphicsView, QGraphics
 from PySide6 import QtGui, QtCore
 import random
 import pyqtgraph as pg
+import numpy as np
 
 GRID_SIZE=50
 
@@ -25,7 +26,7 @@ class CellularAutomataGridView(QGraphicsView):
         self.initializePopulation()
 
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.homogeneousContactProcess)
+        self.timer.timeout.connect(self.gradientContactProcess)
 
         self.e = 0.15
         self.c = 0.2
@@ -36,14 +37,16 @@ class CellularAutomataGridView(QGraphicsView):
     def setColonization(self, c_str):
         try:
             c = float(c_str)
-            self.c = c
+            if c > 0:
+                self.c = c
         except ValueError:
             pass
 
     def setExtinction(self, e_str):
         try:
             e = float(e_str)
-            self.e = e    
+            if e > 0:
+                self.e = e    
         except ValueError:
             pass   
 
@@ -110,6 +113,51 @@ class CellularAutomataGridView(QGraphicsView):
         self.plot_widget.plot([t for t, _ in self.population_data], [p for _, p in self.population_data], pen='b')
         self.time += 1
 
+    def gradientContactProcess(self):
+        """Populate the grid using a gradient contact process.
+        c: colonisation probability
+        e: extinction probability
+        """
+
+        # Pre-calculate the gradient values for each cell
+        gradient = np.arange(GRID_SIZE) / GRID_SIZE
+        
+        changes = set()
+        for i in range(GRID_SIZE):
+            for j in range(GRID_SIZE):
+
+                # Calculate the gradient value for this cell based on its position
+                gradient = 1 - (i / GRID_SIZE)
+                # Adjust the colonization and extinction probabilities based on the gradient value
+                c_prob = self.c * (1 - gradient)
+                e_prob = self.e / (1 - gradient + 0.001)
+
+                # Check if the current cell has a neighboring cell that is occupied
+                if any((i+di, j+dj) in self.occupied_cells for di, dj in [(-1,0), (1,0), (0,-1), (0,1)]):
+                    # Determine whether the current cell becomes occupied or remains occupied
+                    if random.random() < c_prob and (i, j) not in self.occupied_cells:
+                        changes.add((i, j))
+                    elif random.random() < e_prob and (i, j) in self.occupied_cells:
+                        changes.add((i, j))
+        if not changes:
+            return
+        # Apply the changes to the grid
+        for i, j in changes:
+            if (i, j) in self.occupied_cells:
+                self.occupied_cells.remove((i, j))
+            else:
+                self.occupied_cells.add((i, j))
+            pen = QtGui.QPen()
+            brush = QtGui.QBrush(QtCore.Qt.black) if (i, j) in self.occupied_cells else QtGui.QBrush(QtCore.Qt.white)
+            rect = self.scene.addRect(i*10, j*10, 10, 10, pen, brush)
+            rect.setZValue(-1)
+
+        # Update the population plot
+        population = len(self.occupied_cells)
+        self.population_data.append((self.time, population))
+        self.plot_widget.plot([t for t, _ in self.population_data], [p for _, p in self.population_data], pen='b')
+        self.time += 1    
+
 
     def resetGrid(self):
         self.occupied_cells.clear()
@@ -130,21 +178,23 @@ class CellularAutomataGridView(QGraphicsView):
 
 class MainWindow(QMainWindow):
     def __init__(self, icon: QtGui.QIcon, parent=None):
-
         super().__init__(parent)
 
-        # Add a plot widget to the layout to display population over time
+        # Create the plot widget
         population_plot = pg.PlotWidget()
         population_plot.setBackground('w')
         population_plot.setLabel('left', 'Population')
         population_plot.setLabel('bottom', 'Time (s)')
         population_plot.showGrid(x=True, y=True)
 
+        # Create the grid view
         gridView = CellularAutomataGridView(population_plot)
         layout = QVBoxLayout()
-        layout.addWidget(gridView)
 
+        # Create the control widgets
         selectionArea = QGroupBox('Simulation parameters')
+
+        # Create the main layout
         selectionLayout = QHBoxLayout()
         selectionArea.setLayout(selectionLayout)
 
@@ -162,12 +212,12 @@ class MainWindow(QMainWindow):
 
         self.input_colon = QLineEdit()
         self.input_colon.setMaxLength(5)
-        self.input_colon.setPlaceholderText("colonisation = 0.2")
+        self.input_colon.setPlaceholderText("Colonisation Probability = 0.2")
         self.input_colon.textChanged.connect(gridView.setColonization)
 
         self.input_extinction = QLineEdit()
         self.input_extinction.setMaxLength(5)
-        self.input_extinction.setPlaceholderText("extinction = 0.15")
+        self.input_extinction.setPlaceholderText("Extinction Probability = 0.15")
         self.input_extinction.textChanged.connect(gridView.setExtinction)
 
         selectionLayout.addWidget(self.patternBox)
@@ -177,6 +227,7 @@ class MainWindow(QMainWindow):
         selectionLayout.addWidget(self.stopButton)
         selectionLayout.addWidget(self.restetButton)
 
+        # Create the main widget
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
@@ -186,9 +237,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(population_plot, 2)
 
         self.setGeometry(0, 0, 1200, 800)
-        version = "v2.0"
-        self.setWindowTitle("Treeline Fractals " + version)
-
+        self.setWindowTitle("Treeline Fractals v2.0")
         self.setWindowIcon(icon)
+
         self.show()
 
