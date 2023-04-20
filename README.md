@@ -23,6 +23,11 @@ running
 pip3 install PySide6
 ```
 
+All dependencies:
+```shell
+pip install -r requirements.txt
+```
+
 in your Python virtual environment.
 
 ### Running a simulation

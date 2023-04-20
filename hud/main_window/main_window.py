@@ -6,7 +6,11 @@ from simulation.hco_simulation import HomogeneousContactProcessSimulationStrateg
 from simulation.image_treeline_simulation import ImageTreelineSimulationStrategy
 from simulation.simulation_context import SimulationContext
 
+from PySide6.QtGui import QImage, QPixmap, QPainter, QColor
+from PySide6.QtCore import QRect, Qt
+
 import pyqtgraph as pg
+import numpy as np
 
 grid_size = 5
 
@@ -15,20 +19,22 @@ class CellularAutomataGridView(QGraphicsView):
     """
 
     def __init__(self, context: SimulationContext, plotWidget):
-
         QGraphicsView.__init__(self)
 
         self.time = 0
         self.context = context
         self.plot_widget = plotWidget
-
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
         self.setGeometry(0, 0, 1200, 800)
-        self.drawGrid()
+
+        self.image = QImage(self.context._strategy.grid_size * grid_size, self.context._strategy.grid_size * grid_size, QImage.Format_ARGB32)
+        self.image.fill(Qt.white)
+        self.pixmap_item = self.scene.addPixmap(QPixmap.fromImage(self.image))
 
         self.context.initializePopulation()
         self.drawInitialPopulation()
+        self.drawGrid()
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.simulate)
 
@@ -40,56 +46,50 @@ class CellularAutomataGridView(QGraphicsView):
         self.updateGrid()
         self.updatePlot()
 
-    def updateGrid(self):   
-        for i, j in self.context._strategy.changes:   
-                pen = QtGui.QPen()
-                brush = QtGui.QBrush(QtCore.Qt.black) if (i, j) in self.context._strategy.occupied_cells else QtGui.QBrush(QtCore.Qt.white)
-                rect = self.scene.addRect(i*5, j*5, 5, 5, pen, brush)
-                rect.setZValue(-1)
+    def updateGrid(self):
+        painter = QPainter(self.image)
+        for i, j in self.context._strategy.changes:
+            color = Qt.black if self.context._strategy.occupied_cells_b[i, j] else Qt.white
+            painter.fillRect(i * grid_size, j * grid_size, grid_size, grid_size, color)
+        painter.end()
+        self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
 
     def updatePlot(self):
         # Update the population plot
-        population = len(self.context._strategy.occupied_cells)
+        population = self.context._strategy.occupied_cells_b.sum()
         self.context._strategy.population_data.append((self.time, population))
         self.plot_widget.plot([t for t, _ in self.context._strategy.population_data], [p for _, p in self.context._strategy.population_data], pen='b')
         self.time += 1
 
-
     def drawGrid(self):
-        """Draw the universe grid.
-        """
         pen = QtGui.QPen(QtGui.QColor(200, 200, 200))  # set the pen color to light gray
-
         # Draw the horizontal grid lines
         for i in range(self.context._strategy.grid_size + 1):
             self.scene.addLine(0, i * 5, self.context._strategy.grid_size * 5, i * 5, pen)
-
         # Draw the vertical grid lines
         for i in range(self.context._strategy.grid_size + 1):
             self.scene.addLine(i * 5, 0, i * 5, self.context._strategy.grid_size * 5, pen)    
 
     def drawInitialPopulation(self):
+        painter = QPainter(self.image)
         for i in range(self.context._strategy.grid_size):
             for j in range(self.context._strategy.grid_size):
-                pen = QtGui.QPen()
-                brush = QtGui.QBrush(QtCore.Qt.black) if (i, j) in self.context._strategy.occupied_cells else QtGui.QBrush(QtCore.Qt.white)
-                rect = self.scene.addRect(i*5, j*5, 5, 5, pen, brush)
-                rect.setZValue(-1)
+                color = Qt.black if self.context._strategy.occupied_cells_b[i, j] else Qt.white
+                painter.fillRect(i * grid_size, j * grid_size, grid_size, grid_size, color)
+        painter.end()
+        self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
 
     def resetGrid(self):
-        self.context._strategy.occupied_cells.clear()
-        for i in range(self.context._strategy.grid_size):
-            for j in range(self.context._strategy.grid_size):
-                pen = QtGui.QPen()
-                brush = QtGui.QBrush(QtCore.Qt.white)
-                rect = self.scene.addRect(i*5, j*5, 5, 5, pen, brush)
-                rect.setZValue(-1)
-
+        self.context._strategy.occupied_cells_b = np.zeros((self.context._strategy.grid_size, self.context._strategy.grid_size), dtype=bool)
+        painter = QPainter(self.image)
+        painter.fillRect(QRect(0, 0, self.image.width(), self.image.height()), QColor(Qt.white))
+        painter.end()
+        self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
         self.context.initializePopulation()
         self.drawInitialPopulation()
 
     def startTimer(self):
-        self.timer.start(100)
+        self.timer.start(50)
 
     def stopTimer(self):
         self.timer.stop()  
