@@ -48,7 +48,7 @@ class SimulationContext:
         indices = np.random.choice(self._strategy.grid_size * self._strategy.grid_size, n_occupied, replace=False)
         row_indices = indices // self._strategy.grid_size
         col_indices = indices % self._strategy.grid_size
-        self._strategy.occupied_cells_b[row_indices, col_indices] = True
+        self._strategy.occupied_cells[row_indices, col_indices] = True
 
     def simulatePopularizationWithCallback(self):
         self._strategy.simulatePopularization()

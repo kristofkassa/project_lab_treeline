@@ -5,7 +5,7 @@ class SimulationStrategy:
 
     def __init__(self):
         self.grid_size = 100
-        self.occupied_cells_b = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
         self.e = 0.15
@@ -22,4 +22,3 @@ class SimulationStrategy:
     def markHull(self):
         # TODO: implement method
         pass
-

@@ -49,14 +49,14 @@ class CellularAutomataGridView(QGraphicsView):
     def updateGrid(self):
         painter = QPainter(self.image)
         for i, j in self.context._strategy.changes:
-            color = Qt.black if self.context._strategy.occupied_cells_b[i, j] else Qt.white
+            color = Qt.black if self.context._strategy.occupied_cells[i, j] else Qt.white
             painter.fillRect(i * grid_size, j * grid_size, grid_size, grid_size, color)
         painter.end()
         self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
 
     def updatePlot(self):
         # Update the population plot
-        population = self.context._strategy.occupied_cells_b.sum()
+        population = self.context._strategy.occupied_cells.sum()
         self.context._strategy.population_data.append((self.time, population))
         self.plot_widget.plot([t for t, _ in self.context._strategy.population_data], [p for _, p in self.context._strategy.population_data], pen='b')
         self.time += 1
@@ -74,13 +74,13 @@ class CellularAutomataGridView(QGraphicsView):
         painter = QPainter(self.image)
         for i in range(self.context._strategy.grid_size):
             for j in range(self.context._strategy.grid_size):
-                color = Qt.black if self.context._strategy.occupied_cells_b[i, j] else Qt.white
+                color = Qt.black if self.context._strategy.occupied_cells[i, j] else Qt.white
                 painter.fillRect(i * grid_size, j * grid_size, grid_size, grid_size, color)
         painter.end()
         self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
 
     def resetGrid(self):
-        self.context._strategy.occupied_cells_b = np.zeros((self.context._strategy.grid_size, self.context._strategy.grid_size), dtype=bool)
+        self.context._strategy.occupied_cells = np.zeros((self.context._strategy.grid_size, self.context._strategy.grid_size), dtype=bool)
         painter = QPainter(self.image)
         painter.fillRect(QRect(0, 0, self.image.width(), self.image.height()), QColor(Qt.white))
         painter.end()
