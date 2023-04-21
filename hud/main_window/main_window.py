@@ -79,7 +79,32 @@ class CellularAutomataGridView(QGraphicsView):
         painter.end()
         self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
 
+    def markCluster(self): 
+        self.context._strategy.identifyPercolationClusters()
+        painter = QPainter(self.image)
+
+        for (i, j), value in np.ndenumerate(self.context._strategy.cluster):
+            if value:
+                color = Qt.green
+                painter.fillRect(i * grid_size, j * grid_size, grid_size, grid_size, color)
+                
+        painter.end()
+        self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
+
+    def markHull(self): 
+        self.context._strategy.markHull()
+        painter = QPainter(self.image)
+
+        for (i, j), value in np.ndenumerate(self.context._strategy.hull):
+            if value:
+                color = Qt.red
+                painter.fillRect(i * grid_size, j * grid_size, grid_size, grid_size, color)
+
+        painter.end()
+        self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
+
     def resetGrid(self):
+        self.context._strategy.cluster = np.zeros((self.context._strategy.grid_size, self.context._strategy.grid_size), dtype=bool)
         self.context._strategy.occupied_cells = np.zeros((self.context._strategy.grid_size, self.context._strategy.grid_size), dtype=bool)
         painter = QPainter(self.image)
         painter.fillRect(QRect(0, 0, self.image.width(), self.image.height()), QColor(Qt.white))
@@ -146,6 +171,8 @@ class MainWindow(QMainWindow):
         self.startButton.clicked.connect(gridView.startTimer)
         self.stopButton.clicked.connect(gridView.stopTimer)
         self.restetButton.clicked.connect(gridView.resetGrid)
+        self.percolationButton.clicked.connect(gridView.markCluster)
+        self.hullButton.clicked.connect(gridView.markHull)
 
         self.input_colon = QLineEdit()
         self.input_colon.setMaxLength(5)
