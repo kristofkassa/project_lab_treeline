@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import numpy as np
 import sys
+import math
 
 class SimulationStrategy:
 
@@ -115,3 +116,32 @@ class SimulationStrategy:
 
             prev_i, prev_j = i, j
             i, j = next_i, next_j
+
+        self.calculate_fractal_dimension()
+
+    def calculate_fractal_dimension(self):
+        box_sizes = [2 ** i for i in range(int(math.log2(self.grid_size)) + 1)]
+        box_counts = []
+
+        for box_size in box_sizes:
+            count = 0
+            for i in range(0, self.grid_size, box_size):
+                for j in range(0, self.grid_size, box_size):
+                    for x in range(i, min(i + box_size, self.grid_size)):
+                        for y in range(j, min(j + box_size, self.grid_size)):
+                            if self.cluster[x, y]:
+                                count += 1
+                                break
+                        else:
+                            continue
+                        break
+            box_counts.append(count)
+
+        log_box_sizes = [math.log(size) for size in box_sizes]
+        log_box_counts = [math.log(count) for count in box_counts]
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, _ = np.polyfit(log_box_sizes, log_box_counts, 1)
+        fractal_dimension = -slope
+        print("Fractal dimension:", fractal_dimension)
+        return fractal_dimension
