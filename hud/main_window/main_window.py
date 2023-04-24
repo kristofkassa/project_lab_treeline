@@ -41,6 +41,8 @@ class CellularAutomataGridView(QGraphicsView):
     def simulate(self):
         self.context.simulatePopularizationWithCallback()
         self.callbackGUIUpdate()
+        # self.markCluster()
+        # self.markHull()
 
     def callbackGUIUpdate(self):
         self.updateGrid()
@@ -122,11 +124,11 @@ class CellularAutomataGridView(QGraphicsView):
     def setStrategy(self, index):
         match index:
             case 0:
-                self.context.strategy = HomogeneousContactProcessSimulationStrategy()
+                self.context.strategy = GradientContactProcessSimulationStrategy() 
             case 1:
-                self.context.strategy = GradientRandomMapSimulationStrategy()
+                self.context.strategy = HomogeneousContactProcessSimulationStrategy()
             case 2:
-                self.context.strategy = GradientContactProcessSimulationStrategy()
+                self.context.strategy = GradientRandomMapSimulationStrategy()
             case 3:
                 self.context.strategy = ImageTreelineSimulationStrategy()
         self.resetGrid()
@@ -155,9 +157,9 @@ class MainWindow(QMainWindow):
         selectionArea.setLayout(selectionLayout)
 
         self.patternBox = QComboBox()
+        self.patternBox.addItem('Gradient Contract Process')
         self.patternBox.addItem('Homogeneous Contact Process')
         self.patternBox.addItem('Gradient Random Map')
-        self.patternBox.addItem('Gradient Contract Process')
         self.patternBox.addItem('Real image data')
         self.patternBox.currentIndexChanged.connect(gridView.setStrategy)
 
@@ -176,20 +178,20 @@ class MainWindow(QMainWindow):
 
         self.input_colon = QLineEdit()
         self.input_colon.setMaxLength(5)
-        self.input_colon.setPlaceholderText("Colonisation rate = 0.8")
+        self.input_colon.setPlaceholderText("Colonisation rate = 0.6")
         self.input_colon.textChanged.connect(gridView.context.setColonization)
 
         self.input_extinction = QLineEdit()
         self.input_extinction.setMaxLength(5)
-        self.input_extinction.setPlaceholderText("Extinction rate = 0.15")
+        self.input_extinction.setPlaceholderText("Extinction rate = 0.2")
         self.input_extinction.textChanged.connect(gridView.context.setExtinction)
 
         selectionLayout.addWidget(self.patternBox)
         selectionLayout.addWidget(self.startButton)
-        selectionLayout.addWidget(self.input_colon)
-        selectionLayout.addWidget(self.input_extinction)
         selectionLayout.addWidget(self.stopButton)
         selectionLayout.addWidget(self.restetButton)
+        selectionLayout.addWidget(self.input_colon)
+        selectionLayout.addWidget(self.input_extinction)
         selectionLayout.addWidget(self.percolationButton)
         selectionLayout.addWidget(self.hullButton)
 

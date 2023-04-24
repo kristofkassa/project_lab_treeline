@@ -10,8 +10,8 @@ class SimulationStrategy:
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
-        self.e = 0.15
-        self.c = 0.8
+        self.e = 0.2
+        self.c = 0.6
         self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
 
@@ -34,6 +34,7 @@ class SimulationStrategy:
                 self._dfs(x, y, visited, cluster)
 
     def identifyPercolationClusters(self):
+        self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         visited = set()
         clusters = []
 
