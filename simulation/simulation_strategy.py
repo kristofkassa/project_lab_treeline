@@ -52,17 +52,65 @@ class SimulationStrategy:
             for i, j in largest_cluster:
                 self.cluster[i, j] = True
 
+    def _next_edge_node(self, i, j, prev_i, prev_j):
+        directions = [
+            (i - 1, j),
+            (i - 1, j + 1),
+            (i, j + 1),
+            (i + 1, j + 1),
+            (i + 1, j),
+            (i + 1, j - 1),
+            (i, j - 1),
+            (i - 1, j - 1),
+        ]
+
+        start_index = -1
+        for index, (x, y) in enumerate(directions):
+            if x == prev_i and y == prev_j:
+                start_index = index
+                break
+
+        for offset in range(1, len(directions) + 1):
+            index = (start_index + offset) % len(directions)
+            x, y = directions[index]
+            if 0 <= x < self.grid_size and 0 <= y < self.grid_size:
+                if self.cluster[x, y]:
+                    neighbors = self._get_neighbors(x, y)
+
+                    for nx, ny in neighbors:
+                        if not self.cluster[nx, ny]:
+                            return x, y
+        return None, None
+
     def markHull(self):
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         visited = set()
 
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                if self.cluster[i, j] and (i, j) not in visited:
-                    visited.add((i, j))
-                    neighbors = self._get_neighbors(i, j)
+        # Find the lowest leftmost cluster grid
+        start_i, start_j = None, None
+        for j in range(self.grid_size):
+            for i in range(self.grid_size):
+                if self.cluster[i, j]:
+                    start_i, start_j = i, j
+                    break
+            if start_i is not None:
+                break
 
-                    for x, y in neighbors:
-                        if not self.cluster[x, y]:
-                            self.hull[i, j] = True
-                            break
+        if start_i is None:
+            return
+
+        # Mark the leftmost cluster boundary by walking on the edges
+        i, j = start_i, start_j
+        prev_i, prev_j = None, None
+
+        while j < self.grid_size - 1:
+
+            self.hull[i, j] = True
+            visited.add((i, j))
+
+            next_i, next_j = self._next_edge_node(i, j, prev_i, prev_j)
+            if next_i is None or (next_i, next_j) == (start_i, start_j):
+                break
+
+            prev_i, prev_j = i, j
+            i, j = next_i, next_j

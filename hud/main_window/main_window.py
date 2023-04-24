@@ -12,7 +12,7 @@ from PySide6.QtCore import QRect, Qt
 import pyqtgraph as pg
 import numpy as np
 
-grid_size = 3
+grid_size = 4
 
 class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.
@@ -202,7 +202,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(gridView)
         layout.addWidget(population_plot, 2)
 
-        self.setGeometry(0, 0, 1200, 800)
+        self.setGeometry(0, 0, 1200, 900)
         self.setWindowTitle("Treeline Fractals v2.0")
         self.setWindowIcon(icon)
 
