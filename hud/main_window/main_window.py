@@ -12,7 +12,7 @@ from PySide6.QtCore import QRect, Qt
 import pyqtgraph as pg
 import numpy as np
 
-grid_size = 5
+grid_size = 3
 
 class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.
@@ -65,10 +65,10 @@ class CellularAutomataGridView(QGraphicsView):
         pen = QtGui.QPen(QtGui.QColor(200, 200, 200))  # set the pen color to light gray
         # Draw the horizontal grid lines
         for i in range(self.context._strategy.grid_size + 1):
-            self.scene.addLine(0, i * 5, self.context._strategy.grid_size * 5, i * 5, pen)
+            self.scene.addLine(0, i * grid_size, self.context._strategy.grid_size * grid_size, i * grid_size, pen)
         # Draw the vertical grid lines
         for i in range(self.context._strategy.grid_size + 1):
-            self.scene.addLine(i * 5, 0, i * 5, self.context._strategy.grid_size * 5, pen)    
+            self.scene.addLine(i * grid_size, 0, i * grid_size, self.context._strategy.grid_size * grid_size, pen)    
 
     def drawInitialPopulation(self):
         painter = QPainter(self.image)
@@ -176,7 +176,7 @@ class MainWindow(QMainWindow):
 
         self.input_colon = QLineEdit()
         self.input_colon.setMaxLength(5)
-        self.input_colon.setPlaceholderText("Colonisation rate = 0.2")
+        self.input_colon.setPlaceholderText("Colonisation rate = 0.8")
         self.input_colon.textChanged.connect(gridView.context.setColonization)
 
         self.input_extinction = QLineEdit()

@@ -1,16 +1,17 @@
 from abc import abstractmethod
-import random
 import numpy as np
+import sys
 
 class SimulationStrategy:
 
     def __init__(self):
-        self.grid_size = 100
+        sys.setrecursionlimit(20000)
+        self.grid_size = 150
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
         self.e = 0.15
-        self.c = 0.2
+        self.c = 0.8
         self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
 
@@ -18,48 +19,50 @@ class SimulationStrategy:
     def simulatePopularization(self):
         pass
 
+    def _get_neighbors(self, i, j):
+        neighbors = []
+        for x, y in [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)]:
+            if 0 <= x < self.grid_size and 0 <= y < self.grid_size:
+                neighbors.append((x, y))
+        return neighbors
+
+    def _dfs(self, i, j, visited, cluster):
+        visited.add((i, j))
+        cluster.add((i, j))
+        for x, y in self._get_neighbors(i, j):
+            if self.occupied_cells[x, y] and (x, y) not in visited:
+                self._dfs(x, y, visited, cluster)
+
     def identifyPercolationClusters(self):
-        # TODO: implement method
-        
-        self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        visited = set()
+        clusters = []
 
         for i in range(self.grid_size):
             for j in range(self.grid_size):
-                if self.occupied_cells[i, j]:
-                    if random.random() > 0.5:
-                        self.cluster[i, j] = True 
+                if self.occupied_cells[i, j] and (i, j) not in visited:
+                    cluster = set()
+                    self._dfs(i, j, visited, cluster)
+                    clusters.append(cluster)
+
+        if not clusters:
+            self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        else:
+            largest_cluster = max(clusters, key=len)
+            self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+            for i, j in largest_cluster:
+                self.cluster[i, j] = True
 
     def markHull(self):
-        # TODO: implement method
-
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        visited = set()
 
-        # starting position
-        occupied_indices = np.argwhere(self.occupied_cells)
-        idx = np.random.choice(len(occupied_indices))
-        pos_x, pos_y = occupied_indices[idx]
-        self.hull[pos_x, pos_y] = True
-        
-        for step in range(500):
-            # choose a random direction
-            direction = np.random.choice(['up', 'down', 'left', 'right'])
-            
-            # update position based on direction
-            if direction == 'up':
-                pos_x -= 1
-            elif direction == 'down':
-                pos_x += 1
-            #elif direction == 'left':
-            #    pos_y -= 1
-            elif direction == 'right':
-                pos_y += 1
-            
-            # check if new position is within bounds
-            if pos_x < 0 or pos_x >= self.grid_size or pos_y < 0 or pos_y >= self.grid_size:
-                # if new position is out of bounds, wrap around to other side of grid
-                pos_x = pos_x % self.grid_size
-                pos_y = pos_y % self.grid_size
-            
-            if self.occupied_cells[pos_x, pos_y]:
-                self.hull[pos_x, pos_y] = True
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if self.cluster[i, j] and (i, j) not in visited:
+                    visited.add((i, j))
+                    neighbors = self._get_neighbors(i, j)
 
+                    for x, y in neighbors:
+                        if not self.cluster[x, y]:
+                            self.hull[i, j] = True
+                            break

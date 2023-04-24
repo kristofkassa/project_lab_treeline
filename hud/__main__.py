@@ -5,7 +5,7 @@ import time
 from PySide6 import  QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
-from simulation.hco_simulation import HomogeneousContactProcessSimulationStrategy
+from simulation.grm_simulation import GradientRandomMapSimulationStrategy
 from simulation.simulation_context import SimulationContext
 from .main_window.main_window import MainWindow
 
@@ -25,7 +25,7 @@ def __show_splash() -> QtWidgets.QSplashScreen:
 def __show_main_window(splash: QtWidgets.QSplashScreen) -> MainWindow:
     splash.showMessage("Creating main window...", Qt.AlignBottom, QtGui.QColor("#F0F0F0"))
     icon = QtGui.QIcon(str(HERE.joinpath("images/icon.png")))
-    defaultStrategy = HomogeneousContactProcessSimulationStrategy()
+    defaultStrategy = GradientRandomMapSimulationStrategy()
     context = SimulationContext(defaultStrategy)
     window = MainWindow(icon, context)
     window.show()
@@ -35,6 +35,6 @@ def __show_main_window(splash: QtWidgets.QSplashScreen) -> MainWindow:
 def main():
     app = __create_application()
     splash = __show_splash()
-    time.sleep(1)
+    time.sleep(2)
     window = __show_main_window(splash)
     return app.exec_()
