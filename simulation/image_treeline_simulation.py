@@ -9,7 +9,7 @@ class ImageTreelineSimulationStrategy(SimulationStrategy):
 
     def __init__(self):
         super().__init__()
-        self.image_path = "./simulation/forest.png"
+        self.image_path = "./simulation/real_treeline/forest_2.png"
 
     def simulatePopularization(self):
         self.changes = set()
@@ -19,9 +19,15 @@ class ImageTreelineSimulationStrategy(SimulationStrategy):
                 if self.occupied_cells[i][j]:
                     self.changes.add((i, j))
 
-
     def preprocess_image(self, image_path, output_size=(150, 150), green_threshold=80):
         image = Image.open(image_path)
+
+        # Rotate the image 90 degrees counterclockwise
+        image = image.rotate(90, expand=True)
+        
+        # Mirror the image along the x-axis
+        image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+
         image = image.resize(output_size)
         image_data = np.asarray(image, dtype=np.uint8)
         
