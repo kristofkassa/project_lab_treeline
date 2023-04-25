@@ -37,26 +37,3 @@ class GradientContactProcessSimulationStrategy(SimulationStrategy):
         # Recast self.changes as set()
         changes = np.nonzero(self.changes)
         self.changes = set(list(zip(changes[0], changes[1])))
-"""
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                # Calculate the gradient value for this cell based on its position
-                gradient = 1 - gradient_values[i]
-                # Adjust the colonization and extinction probabilities based on the gradient value
-                c_prob = self.c * (1 - gradient)
-                e_prob = self.e / (1 - gradient + 0.001)
-
-                if neighbors[i, j]:
-                    if random_numbers[i, j] < c_prob and not self.occupied_cells[i, j]:
-                        self.changes.add((i, j))
-                    elif random_numbers[i, j] < e_prob and self.occupied_cells[i, j]:
-                        self.changes.add((i, j))
-                        
-        if not self.changes:
-            return
-
-        # Apply the changes to the grid
-        for i, j in self.changes:
-            self.occupied_cells[i, j] = not self.occupied_cells[i, j]
-"""
-
