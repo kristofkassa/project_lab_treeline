@@ -120,6 +120,13 @@ class SimulationStrategy:
         self.calculate_fractal_dimension()
 
     def calculate_fractal_dimension(self):
+        """
+            Initialize the box sizes and counts.
+            Iterate through the different box sizes.
+            For each box size, cover the hull with non-overlapping boxes.
+            Count the number of boxes that intersect with the hull.
+            Calculate the slope of the log-log plot of box size versus the count of boxes that intersect the hull.
+        """
         box_sizes = [2 ** i for i in range(int(math.log2(self.grid_size)) + 1)]
         box_counts = []
 
@@ -129,7 +136,7 @@ class SimulationStrategy:
                 for j in range(0, self.grid_size, box_size):
                     for x in range(i, min(i + box_size, self.grid_size)):
                         for y in range(j, min(j + box_size, self.grid_size)):
-                            if self.cluster[x, y]:
+                            if self.hull[x, y]:
                                 count += 1
                                 break
                         else:
