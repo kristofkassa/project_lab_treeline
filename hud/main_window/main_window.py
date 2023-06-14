@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QGraphicsView, QGraphicsScene, QGroupBox, QHBoxLayout, QComboBox, QPushButton, QWidget, QLineEdit
+from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QGraphicsView, QGraphicsScene, QGroupBox, QHBoxLayout, QComboBox, QPushButton, QWidget, QLineEdit, QTextEdit
 from PySide6 import QtGui, QtCore
 from simulation.gcp_simulation import GradientContactProcessSimulationStrategy
 from simulation.grm_simulation import GradientRandomMapSimulationStrategy
@@ -12,18 +12,21 @@ from PySide6.QtCore import QRect, Qt
 import pyqtgraph as pg
 import numpy as np
 
-grid_size = 4
+grid_size = 2
 
 class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.
     """
 
-    def __init__(self, context: SimulationContext, plotWidget):
+    def __init__(self, context: SimulationContext, plotWidget, densityPlotWidget, box_counting_dimension_textbox, correlation_dimension_textbox):
         QGraphicsView.__init__(self)
 
         self.time = 0
         self.context = context
         self.plot_widget = plotWidget
+        self.densityPlotWidget = densityPlotWidget
+        self.box_counting_dimension_textbox = box_counting_dimension_textbox
+        self.correlation_dimension_textbox = correlation_dimension_textbox
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
         self.setGeometry(0, 0, 1200, 800)
@@ -38,6 +41,9 @@ class CellularAutomataGridView(QGraphicsView):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.simulate)
 
+        self.dimensionTimer = QtCore.QTimer(self)
+        self.dimensionTimer.timeout.connect(self.markHull)
+
     def simulate(self):
         self.context.simulatePopularizationWithCallback()
         self.callbackGUIUpdate()
@@ -47,6 +53,7 @@ class CellularAutomataGridView(QGraphicsView):
     def callbackGUIUpdate(self):
         self.updateGrid()
         self.updatePlot()
+        self.updateDensityPlot(self.densityPlotWidget)
 
     def updateGrid(self):
         painter = QPainter(self.image)
@@ -63,8 +70,19 @@ class CellularAutomataGridView(QGraphicsView):
         self.plot_widget.plot([t for t, _ in self.context._strategy.population_data], [p for _, p in self.context._strategy.population_data], pen='b')
         self.time += 1
 
+    def updateDensityPlot(self, plotWidget):
+        # Clear the plot before updating
+        plotWidget.clear()
+
+        densities = self.getRowDensities()
+        x_values = np.arange(len(densities))
+        plotWidget.plot(x_values, densities, pen='r')
+
+    def getRowDensities(self):
+        return self.context._strategy.occupied_cells.sum(axis=1)
+
     def drawGrid(self):
-        pen = QtGui.QPen(QtGui.QColor(200, 200, 200))  # set the pen color to light gray
+        pen = QtGui.QPen(QtGui.QColor(230, 230, 230))  # set the pen color to light gray
         # Draw the horizontal grid lines
         for i in range(self.context._strategy.grid_size + 1):
             self.scene.addLine(0, i * grid_size, self.context._strategy.grid_size * grid_size, i * grid_size, pen)
@@ -94,9 +112,17 @@ class CellularAutomataGridView(QGraphicsView):
         self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
 
     def markHull(self): 
-        self.context._strategy.markHull()
-        painter = QPainter(self.image)
+        self.context._strategy.identifyPercolationClusters()
 
+        box_counting_dimension, correlation_dimension = self.context._strategy.markHull()
+        self.box_counting_dimension_textbox.append(f"Box counting dimension: {box_counting_dimension}")
+        self.correlation_dimension_textbox.append(f"Correlation  dimension: {correlation_dimension}")
+
+        # Scroll to the bottom to display the latest result
+        self.box_counting_dimension_textbox.verticalScrollBar().setValue(self.box_counting_dimension_textbox.verticalScrollBar().maximum())
+        self.correlation_dimension_textbox.verticalScrollBar().setValue(self.correlation_dimension_textbox.verticalScrollBar().maximum())
+
+        painter = QPainter(self.image)
         for (i, j), value in np.ndenumerate(self.context._strategy.hull):
             if value:
                 color = Qt.red
@@ -116,10 +142,12 @@ class CellularAutomataGridView(QGraphicsView):
         self.drawInitialPopulation()
 
     def startTimer(self):
-        self.timer.start(50)
+        self.timer.start(100)
+        self.dimensionTimer.start(5000)
 
     def stopTimer(self):
-        self.timer.stop()  
+        self.timer.stop()
+        self.dimensionTimer.stop()
 
     def setStrategy(self, index):
         match index:
@@ -138,15 +166,48 @@ class MainWindow(QMainWindow):
     def __init__(self, icon: QtGui.QIcon, context: SimulationContext, parent=None):
         super().__init__(parent)
 
-        # Create the plot widget
+        plotLayout = QHBoxLayout()
+
+        # Define the fixed height
+        plot_height = 250
+
+        # Create the population plot widget
         population_plot = pg.PlotWidget()
         population_plot.setBackground('w')
         population_plot.setLabel('left', 'Population')
         population_plot.setLabel('bottom', 'Time (s)')
         population_plot.showGrid(x=True, y=True)
+        population_plot.setFixedHeight(plot_height)  # Set the fixed height
+
+        # Create another plot for the row densities
+        density_plot = pg.PlotWidget()
+        density_plot.setBackground('w')
+        density_plot.setLabel('left', 'Density')
+        density_plot.setLabel('bottom', 'Row')
+        density_plot.showGrid(x=True, y=True)
+        density_plot.setFixedHeight(plot_height)  # Set the fixed height
+
+        # Add both plots to the plot layout
+        plotLayout.addWidget(population_plot)
+        plotLayout.addWidget(density_plot)
+
+        textLayout = QHBoxLayout()
+
+        # Create a QTextEdit for the fractal dimension result
+        box_counting_dimension_textbox = QTextEdit()
+        box_counting_dimension_textbox.setReadOnly(True)
+        box_counting_dimension_textbox.setFixedHeight(40)
+
+        # Create a QTextEdit for the fractal dimension result
+        correlation_dimension_textbox = QTextEdit()
+        correlation_dimension_textbox.setReadOnly(True)
+        correlation_dimension_textbox.setFixedHeight(40)
+
+        textLayout.addWidget(box_counting_dimension_textbox)
+        textLayout.addWidget(correlation_dimension_textbox)
 
         # Create the grid view
-        gridView = CellularAutomataGridView(context, population_plot)
+        gridView = CellularAutomataGridView(context, population_plot, density_plot, box_counting_dimension_textbox, correlation_dimension_textbox)
         layout = QVBoxLayout()
 
         # Create the control widgets
@@ -201,8 +262,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
         layout.addWidget(selectionArea)
+        layout.addLayout(textLayout)
         layout.addWidget(gridView)
-        layout.addWidget(population_plot, 2)
+        layout.addLayout(plotLayout)
 
         self.setGeometry(0, 0, 1200, 900)
         self.setWindowTitle("Treeline Fractals v2.0")

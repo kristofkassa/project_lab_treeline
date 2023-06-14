@@ -150,3 +150,9 @@ CMakeLists.txt.user*
 
 *.pyc
 *.pyc
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/modules.xml
+.idea/Project_Lab_Treeline.iml
+.idea/vcs.xml
+.idea/workspace.xml

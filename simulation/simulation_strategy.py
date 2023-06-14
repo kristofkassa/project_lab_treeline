@@ -7,7 +7,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(20000)
-        self.grid_size = 150
+        self.grid_size = 250
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
@@ -117,9 +117,9 @@ class SimulationStrategy:
             prev_i, prev_j = i, j
             i, j = next_i, next_j
 
-        self.calculate_fractal_dimension()
+        return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation()
 
-    def calculate_fractal_dimension(self):
+    def calculate_fractal_dimension_boxcounting(self):
         """
             Initialize the box sizes and counts.
             Iterate through the different box sizes.
@@ -151,4 +151,37 @@ class SimulationStrategy:
         slope, _ = np.polyfit(log_box_sizes, log_box_counts, 1)
         fractal_dimension = -slope
         print("Fractal dimension:", fractal_dimension)
+        return fractal_dimension
+    
+    def calculate_fractal_dimension_correlation(self):
+        """
+        Calculate the fractal dimension using the correlation dimension method.
+        This method computes the correlation sum C(r) which counts the number of point pairs that have distance less than r.
+        Then it estimates the dimension as the slope of log(C(r)) vs log(r).
+        """
+        max_radius = self.grid_size // 2
+        radius_sizes = [2 ** i for i in range(int(math.log2(max_radius)) + 1)]
+        correlation_sums = []
+
+        occupied_coordinates = [(x, y) for x in range(self.grid_size) for y in range(self.grid_size) if self.hull[x, y]]
+        num_points = len(occupied_coordinates)
+
+        for radius in radius_sizes:
+            correlation_sum = 0
+            for i in range(num_points):
+                for j in range(i+1, num_points):
+                    x1, y1 = occupied_coordinates[i]
+                    x2, y2 = occupied_coordinates[j]
+                    distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+                    if distance <= radius:
+                        correlation_sum += 1
+            correlation_sums.append(correlation_sum)
+
+        log_radius_sizes = [math.log(size) for size in radius_sizes]
+        log_correlation_sums = [math.log(correlation_sum) for correlation_sum in correlation_sums]
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, _ = np.polyfit(log_radius_sizes, log_correlation_sums, 1)
+        fractal_dimension = slope
+        print("Fractal dimension correlation:", fractal_dimension)
         return fractal_dimension
