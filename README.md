@@ -7,11 +7,18 @@ The occurrence of tree species in high mountains usually ends abruptly at some e
 
 ## Getting started
 
-To run Treeline Fractals Simulator, you'll need Python version 3.11 or above and PySide6.
+To run Treeline Fractals Simulator locally, clone the code using git by running the following:
+
+```shell
+git clone https://github.com/kristofkassa/project_lab_treeline.git
+```
+To find out more about git visit [https://git-scm.com](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
+
+To start the simulation you'll need Python version 3.11 or above and PySide6.
 You can download Python from [www.python.org](https://www.python.org).
 
-Once you have installed Python, you'll need to create a Python virtual
-environment, and you can find instructions for creating and using virtual
+Once you have installed Python, you can optionally create a Python virtual
+environment, you can find instructions for creating and using virtual
 environments at
 [docs.python.org/3/library/venv.html](https://docs.python.org/3/library/venv.html).
 
@@ -23,16 +30,16 @@ running
 pip3 install PySide6
 ```
 
-All dependencies:
+in your Python virtual environment.
+
+Run the following command to install all required dependencies:
 ```shell
 pip install -r requirements.txt
 ```
 
-in your Python virtual environment.
-
 ### Running a simulation
 
-To run a simulation simply run:
+To run a simulation simply run from the root folder:
 
 ```shell
 python3 treeline_fractal.py
