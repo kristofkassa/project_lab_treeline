@@ -1,0 +1,24 @@
+0. Abstract
+(Index terms)
+
+1. Introduction
+
+
+2. Related Work / Literature review
+
+
+3. Research design and Method
+    - milestones etc.
+
+4. Simulation program
+
+
+5. Experiments
+
+
+6. Evaluation and Visualization of results
+
+
+7. Conclusion and Discussion
+
+(References)
