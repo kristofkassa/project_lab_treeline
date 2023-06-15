@@ -1,6 +1,8 @@
 from simulation.simulation_strategy import SimulationStrategy
 from PIL import Image
 import numpy as np
+import os
+import glob
 
 class ImageTreelineSimulationStrategy(SimulationStrategy):
     """
@@ -9,7 +11,16 @@ class ImageTreelineSimulationStrategy(SimulationStrategy):
 
     def __init__(self):
         super().__init__()
-        self.image_path = "./simulation/real_treeline/forest_2.png"
+        self.image_dir = "./simulation/real_treeline/"
+        self.image_files = sorted(glob.glob(os.path.join(self.image_dir, "*.png")))
+        self.image_index = 0
+        self.image_path = self.image_files[self.image_index]
+
+    def nextImage(self):
+        self.image_index = (self.image_index + 1) % len(self.image_files)  # Cycle to the next image
+        self.image_path = self.image_files[self.image_index]
+        self.simulatePopularization()
+        return self.image_path
 
     def simulatePopularization(self):
         self.changes = set()

@@ -12,7 +12,7 @@ from PySide6.QtCore import QRect, Qt
 import pyqtgraph as pg
 import numpy as np
 
-grid_size = 2
+grid_size = 3
 
 class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.
@@ -116,7 +116,7 @@ class CellularAutomataGridView(QGraphicsView):
 
         box_counting_dimension, correlation_dimension = self.context._strategy.markHull()
         self.box_counting_dimension_textbox.append(f"Box counting dimension: {box_counting_dimension}")
-        self.correlation_dimension_textbox.append(f"Correlation  dimension: {correlation_dimension}")
+        self.correlation_dimension_textbox.append(f"Correlation dimension: {correlation_dimension}")
 
         # Scroll to the bottom to display the latest result
         self.box_counting_dimension_textbox.verticalScrollBar().setValue(self.box_counting_dimension_textbox.verticalScrollBar().maximum())
@@ -132,6 +132,7 @@ class CellularAutomataGridView(QGraphicsView):
         self.pixmap_item.setPixmap(QPixmap.fromImage(self.image))
 
     def resetGrid(self):
+        self.plot_widget.clear()
         self.context._strategy.cluster = np.zeros((self.context._strategy.grid_size, self.context._strategy.grid_size), dtype=bool)
         self.context._strategy.occupied_cells = np.zeros((self.context._strategy.grid_size, self.context._strategy.grid_size), dtype=bool)
         painter = QPainter(self.image)
@@ -148,6 +149,11 @@ class CellularAutomataGridView(QGraphicsView):
     def stopTimer(self):
         self.timer.stop()
         self.dimensionTimer.stop()
+
+    def nextImage(self):
+        self.resetGrid()
+        self.context._strategy.nextImage()
+        self.simulate()
 
     def setStrategy(self, index):
         match index:
@@ -169,7 +175,7 @@ class MainWindow(QMainWindow):
         plotLayout = QHBoxLayout()
 
         # Define the fixed height
-        plot_height = 250
+        plot_height = 180
 
         # Create the population plot widget
         population_plot = pg.PlotWidget()
@@ -196,12 +202,12 @@ class MainWindow(QMainWindow):
         # Create a QTextEdit for the fractal dimension result
         box_counting_dimension_textbox = QTextEdit()
         box_counting_dimension_textbox.setReadOnly(True)
-        box_counting_dimension_textbox.setFixedHeight(40)
+        box_counting_dimension_textbox.setFixedHeight(30)
 
         # Create a QTextEdit for the fractal dimension result
         correlation_dimension_textbox = QTextEdit()
         correlation_dimension_textbox.setReadOnly(True)
-        correlation_dimension_textbox.setFixedHeight(40)
+        correlation_dimension_textbox.setFixedHeight(30)
 
         textLayout.addWidget(box_counting_dimension_textbox)
         textLayout.addWidget(correlation_dimension_textbox)
@@ -225,6 +231,8 @@ class MainWindow(QMainWindow):
         self.patternBox.currentIndexChanged.connect(gridView.setStrategy)
 
         self.startButton = QPushButton('&Start')
+        self.nextImageButton = QPushButton('&>')
+        self.nextImageButton.setFixedSize(20, 20)  # Set the width and height of the button
         self.stopButton = QPushButton('&Stop')
         self.restetButton = QPushButton('&Reset')
 
@@ -232,6 +240,7 @@ class MainWindow(QMainWindow):
         self.hullButton = QPushButton('&Mark Hull')
 
         self.startButton.clicked.connect(gridView.startTimer)
+        self.nextImageButton.clicked.connect(gridView.nextImage)
         self.stopButton.clicked.connect(gridView.stopTimer)
         self.restetButton.clicked.connect(gridView.resetGrid)
         self.percolationButton.clicked.connect(gridView.markCluster)
@@ -248,6 +257,7 @@ class MainWindow(QMainWindow):
         self.input_extinction.textChanged.connect(gridView.context.setExtinction)
 
         selectionLayout.addWidget(self.patternBox)
+        selectionLayout.addWidget(self.nextImageButton)
         selectionLayout.addWidget(self.startButton)
         selectionLayout.addWidget(self.stopButton)
         selectionLayout.addWidget(self.restetButton)

@@ -7,7 +7,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(20000)
-        self.grid_size = 250
+        self.grid_size = 200
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
@@ -18,6 +18,10 @@ class SimulationStrategy:
 
     @abstractmethod
     def simulatePopularization(self):
+        pass
+
+    @abstractmethod
+    def nextImage(self):
         pass
 
     def _get_neighbors(self, i, j):
