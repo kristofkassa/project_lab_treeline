@@ -19,14 +19,6 @@ class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
                     (i, (j-1)%n)
                 )
 
-        self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()
-
-    def update_occupied_and_neighboring_cells(self):
-        occupied_and_neighboring_cell_indices = set(tuple(idx) for idx in np.array(np.where(self.occupied_cells)).T)
-        for cell in occupied_and_neighboring_cell_indices.copy():
-            occupied_and_neighboring_cell_indices.update(self.neighbors[cell])
-        return list(occupied_and_neighboring_cell_indices)
-
     def simulatePopularization(self):
         self.changes.clear()
         for idx in range(len(self.occupied_and_neighboring_cell_indices)):

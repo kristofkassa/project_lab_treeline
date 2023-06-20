@@ -8,30 +8,55 @@ class GradientRandomMapSimulationStrategy(SimulationStrategy):
 
     def __init__(self):
         super().__init__()
+        self.neighbors = np.empty_like(self.occupied_cells, dtype=tuple)
+        n = self.grid_size
+        for i in range(1, n-1):
+            for j in range(n):
+                self.neighbors[i][j] = (
+                    ((i+1)%n, j),
+                    (i, (j+1)%n),
+                    ((i-1)%n, j),
+                    (i, (j-1)%n)
+                )
+        #copy the first and last column next to themselves for neighbor counting
+        for j in range(n):
+            self.neighbors[0][j] = (
+                (1, j),
+                (0, (j+1)%n),
+                (0, j),   #itself
+                (0, (j-1)%n)
+            )
+            self.neighbors[n-1][j] = (
+                (n-1, j),  #itself
+                (n-1, (j+1)%n),
+                (n-2, j),
+                (n-1, (j-1)%n)
+            )
 
     def simulatePopularization(self):
         # Pre-calculate the gradient values for each cell
         gradient_values = np.arange(self.grid_size) / self.grid_size
-        
-        self.changes = set()
-        random_numbers = np.random.rand(self.grid_size, self.grid_size, 2)
 
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                # Calculate the gradient value for this cell based on its position
-                gradient = 1 - gradient_values[i]
-                # Adjust the colonization and extinction probabilities based on the gradient value
-                c_prob = self.c * (1 - gradient)
-                e_prob = self.e / (1 - gradient + 0.001)
+        self.changes.clear()
+        for idx in range(len(self.occupied_and_neighboring_cell_indices)):
+            # Sample a random cell from the list of occupied cells and their neighbors
+            rand_idx = np.random.randint(len(self.occupied_and_neighboring_cell_indices))
+            rand_cell = self.occupied_and_neighboring_cell_indices[rand_idx]
+            random_number = np.random.rand()
 
-                if random_numbers[i, j, 0] < c_prob and not self.occupied_cells[i, j]:
-                    self.changes.add((i, j))
-                elif random_numbers[i, j, 1] < e_prob and self.occupied_cells[i, j]:
-                    self.changes.add((i, j))
+            # Adjust the colonization and extinction probabilities based on the gradient value
+            i = rand_cell[0]
+            c_prob = self.c * gradient_values[i]
+            e_prob = self.e / (gradient_values[i] + 0.0001)
 
-        if not self.changes:
-            return
+            if self.occupied_cells[rand_cell]:
+                if random_number < e_prob:
+                    self.occupied_cells[rand_cell] = 0
+                    self.changes.add(rand_cell)
+            else:
+                if random_number < c_prob:
+                    self.occupied_cells[rand_cell] = 1
+                    self.changes.add(rand_cell)
 
-        # Apply the changes to the grid
-        for i, j in self.changes:
-            self.occupied_cells[i, j] = not self.occupied_cells[i, j]
+        # Update the list of occupied cells and their neighbors after the changes
+        self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()

@@ -16,6 +16,14 @@ class SimulationStrategy:
         self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
 
+        self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()
+
+    def update_occupied_and_neighboring_cells(self):
+        occupied_and_neighboring_cell_indices = set(tuple(idx) for idx in np.array(np.where(self.occupied_cells)).T)
+        for cell in occupied_and_neighboring_cell_indices.copy():
+            occupied_and_neighboring_cell_indices.update(self.neighbors[cell])
+        return list(occupied_and_neighboring_cell_indices)
+
     @abstractmethod
     def simulatePopularization(self):
         pass
