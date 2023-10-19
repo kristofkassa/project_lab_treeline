@@ -41,7 +41,7 @@ class SimulationContext:
         except ValueError:
             pass   
 
-    def initializePopulation(self, percentage = 0.001):
+    def initializePopulation(self, percentage = 0.01):
         """Randomly occupy a certain percentage of the grid.
         """
         n_occupied = int(self._strategy.grid_size * self._strategy.grid_size * percentage)

@@ -21,10 +21,9 @@ class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
 
     def simulatePopularization(self):
         self.changes.clear()
-        for idx in range(len(self.occupied_and_neighboring_cell_indices)):
-            # Sample a random cell from the list of occupied cells and their neighbors
-            rand_idx = np.random.randint(len(self.occupied_and_neighboring_cell_indices))
-            rand_cell = self.occupied_and_neighboring_cell_indices[rand_idx]
+        for _ in range(self.grid_size ** 2): #regular Monte Carlo step
+            # Sample a random cell from the lattice
+            rand_cell = (np.random.randint(self.grid_size), np.random.randint(self.grid_size))
             random_number = np.random.rand()
 
             if self.occupied_cells[rand_cell]:

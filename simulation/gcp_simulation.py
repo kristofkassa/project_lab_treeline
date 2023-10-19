@@ -39,16 +39,15 @@ class GradientContactProcessSimulationStrategy(SimulationStrategy):
         gradient_values = np.arange(self.grid_size) / self.grid_size
 
         self.changes.clear()
-        for idx in range(len(self.occupied_and_neighboring_cell_indices)):
-            # Sample a random cell from the list of occupied cells and their neighbors
-            rand_idx = np.random.randint(len(self.occupied_and_neighboring_cell_indices))
-            rand_cell = self.occupied_and_neighboring_cell_indices[rand_idx]
+        for idx in range(self.grid_size**2): #regular Monte Carlo step
+            # Sample a random cell from the lattice
+            rand_cell = (np.random.randint(self.grid_size), np.random.randint(self.grid_size))
             random_number = np.random.rand()
 
             # Adjust the colonization and extinction probabilities based on the gradient value
             i = rand_cell[0]
-            c_prob = self.c * gradient_values[i]
-            e_prob = self.e / (gradient_values[i] + 0.0001)
+            c_prob = 1 * gradient_values[i]
+            e_prob = self.e #/ (gradient_values[i] + 0.0001)
 
             if self.occupied_cells[rand_cell]:
                 if random_number < e_prob:
