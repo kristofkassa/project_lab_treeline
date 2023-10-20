@@ -7,12 +7,12 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(20000)
-        self.grid_size = 200
+        self.grid_size = 50
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
         self.e = 0.2
-        self.c = 0.6
+        self.c = 0.8
         self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
 
@@ -69,66 +69,50 @@ class SimulationStrategy:
     def _next_edge_node(self, i, j, prev_i, prev_j):
         directions = [
             (i - 1, j),
-            (i - 1, j + 1),
             (i, j + 1),
-            (i + 1, j + 1),
             (i + 1, j),
-            (i + 1, j - 1),
             (i, j - 1),
-            (i - 1, j - 1),
         ]
 
-        start_index = -1
-        for index, (x, y) in enumerate(directions):
-            if x == prev_i and y == prev_j:
-                start_index = index
-                break
+        # Try to find the index of the previous node; if not found, start from 0
+        try:
+            start_idx = directions.index((prev_i, prev_j))
+        except ValueError:
+            start_idx = 0
 
-        for offset in range(1, len(directions) + 1):
-            index = (start_index + offset) % len(directions)
-            x, y = directions[index]
-            if 0 <= x < self.grid_size and 0 <= y < self.grid_size:
-                if self.cluster[x, y]:
-                    neighbors = self._get_neighbors(x, y)
+        for d in range(1, 5):  # iterate over the 4 possible directions
+            next_i, next_j = directions[(start_idx + d) % 4]
+            if 0 <= next_i < self.grid_size and 0 <= next_j < self.grid_size:  # Check bounds
+                if self.cluster[next_i, next_j]:
+                    return (next_i, next_j)
 
-                    for nx, ny in neighbors:
-                        if not self.cluster[nx, ny]:
-                            return x, y
-        return None, None
+
 
     def markHull(self):
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
-        visited = set()
 
-        # Find the lowest leftmost cluster grid
-        start_i, start_j = None, None
-        for j in range(self.grid_size):
-            for i in range(self.grid_size):
+        # Find an initial edge node arbitrarily
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
                 if self.cluster[i, j]:
                     start_i, start_j = i, j
                     break
-            if start_i is not None:
-                break
+            else:
+                continue
+            break
 
-        if start_i is None:
-            return
+        # Start edge following
+        prev_i, prev_j = start_i, start_j
+        curr_i, curr_j = self._next_edge_node(start_i, start_j, start_i, start_j)
+        self.hull[start_i, start_j] = True
 
-        # Mark the leftmost cluster boundary by walking on the edges
-        i, j = start_i, start_j
-        prev_i, prev_j = None, None
+        while curr_i != start_i or curr_j != start_j:
+            self.hull[curr_i, curr_j] = True
+            next_i, next_j = self._next_edge_node(curr_i, curr_j, prev_i, prev_j)
+            prev_i, prev_j = curr_i, curr_j
+            curr_i, curr_j = next_i, next_j
 
-        while j < self.grid_size - 1:
-
-            self.hull[i, j] = True
-            visited.add((i, j))
-
-            next_i, next_j = self._next_edge_node(i, j, prev_i, prev_j)
-            if next_i is None or (next_i, next_j) == (start_i, start_j):
-                break
-
-            prev_i, prev_j = i, j
-            i, j = next_i, next_j
-
+        self.hull[curr_i, curr_j] = True  # Mark the starting node again to close the hull
         return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation()
 
     def calculate_fractal_dimension_boxcounting(self):

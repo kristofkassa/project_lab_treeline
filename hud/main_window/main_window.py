@@ -12,7 +12,7 @@ from PySide6.QtCore import QRect, Qt
 import pyqtgraph as pg
 import numpy as np
 
-grid_size = 3
+grid_size = 12
 
 class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.
@@ -42,7 +42,7 @@ class CellularAutomataGridView(QGraphicsView):
         self.timer.timeout.connect(self.simulate)
 
         self.dimensionTimer = QtCore.QTimer(self)
-        self.dimensionTimer.timeout.connect(self.markHull)
+        # self.dimensionTimer.timeout.connect(self.markHull)
 
     def simulate(self):
         self.context.simulatePopularizationWithCallback()
