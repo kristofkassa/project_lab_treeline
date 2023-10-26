@@ -7,7 +7,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(20000)
-        self.grid_size = 50
+        self.grid_size = 200
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
@@ -92,8 +92,8 @@ class SimulationStrategy:
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
 
         # Find an initial edge node arbitrarily
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
+        for j in range(self.grid_size):
+            for i in range(self.grid_size):
                 if self.cluster[i, j]:
                     start_i, start_j = i, j
                     break
@@ -101,12 +101,24 @@ class SimulationStrategy:
                 continue
             break
 
+        # Find the last edge node arbitrarily
+        for j in reversed(range(self.grid_size)):
+            for i in range(self.grid_size):
+                if self.cluster[i, j]:
+                    end_i, end_j = i, j
+                    break
+            else:
+                continue
+            break
+
+        print(start_i, start_j, end_i, end_j)
+
         # Start edge following
         prev_i, prev_j = start_i, start_j
         curr_i, curr_j = self._next_edge_node(start_i, start_j, start_i, start_j)
         self.hull[start_i, start_j] = True
 
-        while curr_i != start_i or curr_j != start_j:
+        while curr_i != end_i or curr_j != end_j:
             self.hull[curr_i, curr_j] = True
             next_i, next_j = self._next_edge_node(curr_i, curr_j, prev_i, prev_j)
             prev_i, prev_j = curr_i, curr_j
