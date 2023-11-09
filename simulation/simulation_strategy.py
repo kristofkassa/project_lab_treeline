@@ -2,6 +2,7 @@ from abc import abstractmethod
 import numpy as np
 import sys
 import math
+import matplotlib.pyplot as plt
 
 class SimulationStrategy:
 
@@ -156,9 +157,27 @@ class SimulationStrategy:
         log_box_counts = [math.log(count) for count in box_counts]
 
         # Calculate the slope of the log-log plot using linear regression
-        slope, _ = np.polyfit(log_box_sizes, log_box_counts, 1)
+        slope, intercept = np.polyfit(log_box_sizes, log_box_counts, 1)
         fractal_dimension = -slope
         print("Fractal dimension:", fractal_dimension)
+
+        #plot the data points
+        plt.figure(figsize=(8, 6))
+        plt.plot(log_box_sizes, log_box_counts, marker='o', linestyle='-')
+        plt.title('Log-Log Plot of Box Sizes vs. Box Counts')
+        plt.xlabel('Log(Box Sizes)')
+        plt.ylabel('Log(Box Counts)')
+
+        #plot the actual and desired regression line
+        regression_line = slope * np.array(log_box_sizes) + intercept
+        magic_line = (-1.75) * np.array(log_box_sizes) + intercept
+        plt.plot(log_box_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {slope:.2f})')
+        plt.plot(log_box_sizes, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = {-1.75:.2f})')
+
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
         return fractal_dimension
     
     def calculate_fractal_dimension_correlation(self):
@@ -189,7 +208,25 @@ class SimulationStrategy:
         log_correlation_sums = [math.log(correlation_sum) for correlation_sum in correlation_sums]
 
         # Calculate the slope of the log-log plot using linear regression
-        slope, _ = np.polyfit(log_radius_sizes, log_correlation_sums, 1)
+        slope, intercept = np.polyfit(log_radius_sizes, log_correlation_sums, 1)
         fractal_dimension = slope
         print("Fractal dimension correlation:", fractal_dimension)
+
+        #plot the data points
+        plt.figure(figsize=(8, 6))
+        plt.plot(log_radius_sizes, log_correlation_sums, marker='o', linestyle='-')
+        plt.title('Log-Log Plot of Radius Sizes vs. Correlation Sums')
+        plt.xlabel('Log(Radius Sizes)')
+        plt.ylabel('Log(Correlation Sums)')
+
+        #plot the actual and desired regression line
+        regression_line = slope * np.array(log_radius_sizes) + intercept
+        magic_line = (1.75) * np.array(log_radius_sizes) + intercept
+        plt.plot(log_radius_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {slope:.2f})')
+        plt.plot(log_radius_sizes, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = {1.75:.2f})')
+
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
         return fractal_dimension
