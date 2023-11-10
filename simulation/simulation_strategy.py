@@ -136,7 +136,7 @@ class SimulationStrategy:
             Count the number of boxes that intersect with the hull.
             Calculate the slope of the log-log plot of box size versus the count of boxes that intersect the hull.
         """
-        box_sizes = [2 ** i for i in range(int(math.log2(self.grid_size)) + 1)]
+        box_sizes = [2 ** i for i in range(1,int(math.log2(self.grid_size)) -1)]
         box_counts = []
 
         for box_size in box_sizes:
@@ -187,7 +187,7 @@ class SimulationStrategy:
         Then it estimates the dimension as the slope of log(C(r)) vs log(r).
         """
         max_radius = self.grid_size // 2
-        radius_sizes = [2 ** i for i in range(int(math.log2(max_radius)) + 1)]
+        radius_sizes = [2 ** i for i in range(1,int(math.log2(max_radius)) -1)]
         correlation_sums = []
 
         occupied_coordinates = [(x, y) for x in range(self.grid_size) for y in range(self.grid_size) if self.hull[x, y]]
