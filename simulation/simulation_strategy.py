@@ -133,6 +133,7 @@ class SimulationStrategy:
 
         #print(self.hull_list)
         self.calculate_fractal_dimension_ruler()
+        self.calculate_fractal_dimension_avgdist()
         return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation()
 
     def calculate_fractal_dimension_boxcounting(self):
@@ -287,6 +288,46 @@ class SimulationStrategy:
         except Exception as error:
             print(error)
             return -1
+
+    def calculate_fractal_dimension_avgdist(self):
+        k_lengths = [2 ** i for i in range(1, int(math.log2(len(self.hull_list)//2))-1 )]
+        avg_dists = []
+
+        for k in k_lengths:
+            m = len(self.hull_list) // k
+            avg = 0.0
+            for i in range(1, m):
+                print("k=",k,", i*k=",i*k,", m=",m)
+                avg += dist(self.hull_list[i*k], self.hull_list[(i-1)*k])
+            avg /= m
+            print("k=", k, "  avg=", avg)
+
+            avg_dists.append(avg)
+
+        log_k_lengths = [math.log(k) for k in k_lengths]
+        log_avg_dists = [math.log(avg) for avg in avg_dists]
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, intercept = np.polyfit(log_k_lengths, log_avg_dists, 1)
+        fractal_dimension = 1/slope
+        print("Ruler Dimension:", fractal_dimension)
+
+        #plot the data points
+        plt.figure(figsize=(8, 6))
+        plt.plot(log_k_lengths, log_avg_dists, marker='o', linestyle='-')
+        plt.title('Log-Log Plot of k values vs. Average Distances')
+        plt.xlabel('Log(k)')
+        plt.ylabel('Log(Average Distances)')
+
+        regression_line = slope * np.array(log_k_lengths) + intercept
+        magic_line = (1/1.75) * np.array(log_k_lengths) + intercept
+        plt.plot(log_k_lengths, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = 1/{fractal_dimension:.2f})')
+        plt.plot(log_k_lengths, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = 1/1.75)')
+
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+        return fractal_dimension
 
     def topleft_cell_of_hull(self):
         hull_cells = [(x, y) for x in range(self.grid_size) for y in range(self.grid_size) if self.hull[x, y]]
