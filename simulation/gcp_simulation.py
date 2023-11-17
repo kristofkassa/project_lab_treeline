@@ -39,7 +39,7 @@ class GradientContactProcessSimulationStrategy(SimulationStrategy):
         gradient_values = np.arange(self.grid_size) / self.grid_size
 
         self.changes.clear()
-        for idx in range(self.grid_size**2): #regular Monte Carlo step
+        for _ in range(self.grid_size**2): #regular Monte Carlo step
             # Sample a random cell from the lattice
             rand_cell = (np.random.randint(self.grid_size), np.random.randint(self.grid_size))
             random_number = np.random.rand()
