@@ -8,7 +8,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(20000)
-        self.grid_size = 250
+        self.grid_size = 200
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
@@ -310,7 +310,7 @@ class SimulationStrategy:
         # Calculate the slope of the log-log plot using linear regression
         slope, intercept = np.polyfit(log_k_lengths, log_avg_dists, 1)
         fractal_dimension = 1/slope
-        print("Ruler Dimension:", fractal_dimension)
+        print("AvgDist Dimension:", fractal_dimension)
 
         #plot the data points
         plt.figure(figsize=(8, 6))
