@@ -8,7 +8,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(20000)
-        self.grid_size = 200
+        self.grid_size = 250
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
@@ -16,6 +16,7 @@ class SimulationStrategy:
         self.c = 0.8
         self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        self.hull_list = []
 
         self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()
 
@@ -118,14 +119,20 @@ class SimulationStrategy:
         prev_i, prev_j = start_i, start_j
         curr_i, curr_j = self._next_edge_node(start_i, start_j, start_i, start_j)
         self.hull[start_i, start_j] = True
+        self.hull_list.append((start_i, start_j))
 
         while curr_i != end_i or curr_j != end_j:
             self.hull[curr_i, curr_j] = True
+            self.hull_list.append((curr_i, curr_j))
             next_i, next_j = self._next_edge_node(curr_i, curr_j, prev_i, prev_j)
             prev_i, prev_j = curr_i, curr_j
             curr_i, curr_j = next_i, next_j
 
         self.hull[curr_i, curr_j] = True  # Mark the starting node again to close the hull
+        self.hull_list.append((curr_i, curr_j))
+
+        #print(self.hull_list)
+        self.calculate_fractal_dimension_ruler()
         return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation()
 
     def calculate_fractal_dimension_boxcounting(self):
@@ -159,7 +166,7 @@ class SimulationStrategy:
         # Calculate the slope of the log-log plot using linear regression
         slope, intercept = np.polyfit(log_box_sizes, log_box_counts, 1)
         fractal_dimension = -slope
-        print("Fractal dimension:", fractal_dimension)
+        print("Box Dimension:", fractal_dimension)
 
         #plot the data points
         plt.figure(figsize=(8, 6))
@@ -199,7 +206,7 @@ class SimulationStrategy:
                 for j in range(i+1, num_points):
                     x1, y1 = occupied_coordinates[i]
                     x2, y2 = occupied_coordinates[j]
-                    distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+                    distance = dist(occupied_coordinates[i], occupied_coordinates[j])
                     if distance <= radius:
                         correlation_sum += 1
             correlation_sums.append(correlation_sum)
@@ -210,7 +217,7 @@ class SimulationStrategy:
         # Calculate the slope of the log-log plot using linear regression
         slope, intercept = np.polyfit(log_radius_sizes, log_correlation_sums, 1)
         fractal_dimension = slope
-        print("Fractal dimension correlation:", fractal_dimension)
+        print("Correlation Dimenson:", fractal_dimension)
 
         #plot the data points
         plt.figure(figsize=(8, 6))
@@ -230,3 +237,76 @@ class SimulationStrategy:
         plt.show()
 
         return fractal_dimension
+
+    def calculate_fractal_dimension_ruler(self):
+        try:
+            max_size = self.grid_size #//4
+            ruler_sizes = [2 ** i for i in range(1, int(math.log2(max_size)) )]
+            ruler_counts = []
+
+            hull_cells = self.hull_list
+
+            for ruler_size in ruler_sizes:
+                ruler_count = 0
+                print("r=", ruler_size)
+                cell0 = hull_cells[0]
+                i = 1
+                while i < len(hull_cells):
+                    while (i < len(hull_cells)) and (dist(cell0, hull_cells[i]) <= ruler_size):
+                        i+=1
+                    #print(cell0)
+                    cell0 = hull_cells[i-1]
+                    ruler_count += 1
+                ruler_counts.append(ruler_count)
+                print("count = ", ruler_count, "\n")
+
+            log_ruler_sizes = [math.log(ruler_size) for ruler_size in ruler_sizes]
+            log_ruler_counts = [math.log(ruler_count) for ruler_count in ruler_counts]
+
+            # Calculate the slope of the log-log plot using linear regression
+            slope, intercept = np.polyfit(log_ruler_sizes, log_ruler_counts, 1)
+            fractal_dimension = -slope
+            print("Ruler Dimension:", fractal_dimension)
+
+            #plot the data points
+            plt.figure(figsize=(8, 6))
+            plt.plot(log_ruler_sizes, log_ruler_counts, marker='o', linestyle='-')
+            plt.title('Log-Log Plot of Ruler Sizes vs. Ruler Counts')
+            plt.xlabel('Log(Ruler Sizes)')
+            plt.ylabel('Log(Ruler Counts)')
+
+            regression_line = slope * np.array(log_ruler_sizes) + intercept
+            magic_line = (-1.75) * np.array(log_ruler_sizes) + intercept
+            plt.plot(log_ruler_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {slope:.2f})')
+            plt.plot(log_ruler_sizes, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = {-1.75:.2f})')
+
+            plt.legend()
+            plt.grid(True)
+            plt.show()
+            return fractal_dimension
+        except Exception as error:
+            print(error)
+            return -1
+
+    def topleft_cell_of_hull(self):
+        hull_cells = [(x, y) for x in range(self.grid_size) for y in range(self.grid_size) if self.hull[x, y]]
+        hull_y = [cell[1] for cell in hull_cells]
+        y0 = min(hull_y)
+        x0 = []
+        for x in range(self.grid_size):
+            if (x, y0) in hull_cells:
+                x0.append(x)
+        x0 = min(x0)
+
+        return (x0, y0)
+
+def dist(cell1, cell2, kind='eucl'):
+    """
+    Calculate distance of specified kind between cell1 and cell2.
+    'eucl' - Euclidean distance (default)
+    'taxi' - taxicab distance (Manhattan distance)
+    """
+    if kind == 'eucl':
+        return math.sqrt( (cell1[0] - cell2[0])**2 + (cell1[1] - cell2[1])**2 )
+    elif kind == 'taxi':
+        return abs(cell1[0] - cell2[0]) + abs(cell1[1] - cell2[1])
