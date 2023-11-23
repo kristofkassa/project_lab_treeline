@@ -1,11 +1,11 @@
 import numpy as np
+import random
 from simulation.simulation_strategy import SimulationStrategy
 
 class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
     """
     Homogeneous Contact Process simulation strategy.
     """
-
     def __init__(self):
         super().__init__()
         self.neighbors = np.empty_like(self.occupied_cells, dtype=tuple)
@@ -18,6 +18,7 @@ class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
                     ((i-1)%n, j),
                     (i, (j-1)%n)
                 )
+        self._ = 0
 
     def simulatePopularization(self):
         self.changes.clear()
@@ -40,6 +41,7 @@ class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
                 if random_number < self.c * k/4:
                     self.occupied_cells[rand_cell] = 1
                     self.changes.add(rand_cell)
+        
 
         # Update the list of occupied cells and their neighbors after the changes
         self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()

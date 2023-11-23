@@ -242,61 +242,34 @@ class SimulationStrategy:
     def calculate_fractal_dimension_ruler(self):
         #try:
         max_size = self.grid_size #//4
-        ruler_sizes = [2 ** i for i in range(0, int(math.log2(max_size)) )]
+        ruler_sizes = [2 ** i for i in range(1, int(math.log2(max_size)) )]
         ruler_counts = []
 
         hull_cells = self.hull_list
         ruler_walk = {}
 
         for ruler_size in ruler_sizes:
-            ruler_count=0
-            
-            ruler_walk[ruler_size] = [hull_cells[0]]
-            i = 0 #index of starting cell (first end of the ruler)
-            prev_i = -1 #index of previous starting cell
-            
-            _ = 0 
+            _ = 0
+            ruler_count = 0
+            print("r=", ruler_size)
+            cell0 = hull_cells[0]
+            i = 1
+            while i < len(hull_cells):
+                while (i < len(hull_cells)) and (dist(cell0, hull_cells[i]) <= ruler_size):
+                    i+=1
+                print(cell0)
+                cell0 = hull_cells[i-1]
+                ruler_count += 1
 
-            #print("Hull:", hull_cells, '\n')
-            #print("r =", ruler_size)
-            while hull_cells[i] != hull_cells[-1]:
-                if dist(hull_cells[i],hull_cells[-1]) > ruler_size:
-                    within_r_dists = {
-                        j: dist(hull_cells[i], hull_cells[j]) 
-                        for j in range(i, len(hull_cells)) 
-                            if dist(hull_cells[i], hull_cells[j]) <= ruler_size
-                    }
-                    max_dist = max(within_r_dists.values())
-                    max_dists_within_r = [
-                        j 
-                        for j in within_r_dists.keys() 
-                            if within_r_dists[j] == max_dist
-                    ]
-                    #print("cell0 =", hull_cells[i], "cells <= r=",ruler_size,":", 
-                    #      {hull_cells[j]: within_r_dists[j] for j in within_r_dists}, "maxdist = ",max(within_r_dists.values()), '\n')
-                    #print("Hull:", hull_cells, '\n')
-                    #print(hull_cells[i])
-                    if prev_i in max_dists_within_r:
-                        max_dists_within_r.remove(prev_i)
-                    if max_dists_within_r: #if it is not empty after removing prev_i
-                        i, prev_i = max(max_dists_within_r), i #, key = hull_cells[i:].index)
-                    else:
-                        i, prev_i = prev_i, i
-                    ruler_count += 1
-
-                    _ += 1
-                    if _ > self.grid_size ** 2: 
-                        print("INFINITE LOOP")
-                        break #to avoid inifite loops in developement stage
-                else:
-                    #print(hull_cells[i])
-                    #ruler_count += 1 
-                    i = -1
-                ruler_walk[ruler_size].append(hull_cells[i])
+                _ += 1
+                if _ > self.grid_size ** 2: 
+                    print("INFINITE LOOP")
+                    break #to avoid inifite loops in developement stage
+            print(hull_cells[i-1])
             ruler_counts.append(ruler_count)
+            print("count = ", ruler_count, "\n")
 
-        for r, walk in ruler_walk.items():
-            print("r =",r, ":", walk, '\n')
+        
 
         log_ruler_sizes = [math.log(ruler_size) for ruler_size in ruler_sizes]
         log_ruler_counts = [math.log(ruler_count) for ruler_count in ruler_counts]
