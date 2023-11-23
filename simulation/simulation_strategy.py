@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 class SimulationStrategy:
 
     def __init__(self):
-        sys.setrecursionlimit(20000)
+        sys.setrecursionlimit(50000)
         self.grid_size = 200
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
@@ -240,54 +240,91 @@ class SimulationStrategy:
         return fractal_dimension
 
     def calculate_fractal_dimension_ruler(self):
-        try:
-            max_size = self.grid_size #//4
-            ruler_sizes = [2 ** i for i in range(1, int(math.log2(max_size)) )]
-            ruler_counts = []
+        #try:
+        max_size = self.grid_size #//4
+        ruler_sizes = [2 ** i for i in range(0, int(math.log2(max_size)) )]
+        ruler_counts = []
 
-            hull_cells = self.hull_list
+        hull_cells = self.hull_list
+        ruler_walk = {}
 
-            for ruler_size in ruler_sizes:
-                ruler_count = 0
-                print("r=", ruler_size)
-                cell0 = hull_cells[0]
-                i = 1
-                while i < len(hull_cells):
-                    while (i < len(hull_cells)) and (dist(cell0, hull_cells[i]) <= ruler_size):
-                        i+=1
-                    #print(cell0)
-                    cell0 = hull_cells[i-1]
+        for ruler_size in ruler_sizes:
+            ruler_count=0
+            
+            ruler_walk[ruler_size] = [hull_cells[0]]
+            i = 0 #index of starting cell (first end of the ruler)
+            prev_i = -1 #index of previous starting cell
+            
+            _ = 0 
+
+            #print("Hull:", hull_cells, '\n')
+            #print("r =", ruler_size)
+            while hull_cells[i] != hull_cells[-1]:
+                if dist(hull_cells[i],hull_cells[-1]) > ruler_size:
+                    within_r_dists = {
+                        j: dist(hull_cells[i], hull_cells[j]) 
+                        for j in range(i, len(hull_cells)) 
+                            if dist(hull_cells[i], hull_cells[j]) <= ruler_size
+                    }
+                    max_dist = max(within_r_dists.values())
+                    max_dists_within_r = [
+                        j 
+                        for j in within_r_dists.keys() 
+                            if within_r_dists[j] == max_dist
+                    ]
+                    #print("cell0 =", hull_cells[i], "cells <= r=",ruler_size,":", 
+                    #      {hull_cells[j]: within_r_dists[j] for j in within_r_dists}, "maxdist = ",max(within_r_dists.values()), '\n')
+                    #print("Hull:", hull_cells, '\n')
+                    #print(hull_cells[i])
+                    if prev_i in max_dists_within_r:
+                        max_dists_within_r.remove(prev_i)
+                    if max_dists_within_r: #if it is not empty after removing prev_i
+                        i, prev_i = max(max_dists_within_r), i #, key = hull_cells[i:].index)
+                    else:
+                        i, prev_i = prev_i, i
                     ruler_count += 1
-                ruler_counts.append(ruler_count)
-                print("count = ", ruler_count, "\n")
 
-            log_ruler_sizes = [math.log(ruler_size) for ruler_size in ruler_sizes]
-            log_ruler_counts = [math.log(ruler_count) for ruler_count in ruler_counts]
+                    _ += 1
+                    if _ > self.grid_size ** 2: 
+                        print("INFINITE LOOP")
+                        break #to avoid inifite loops in developement stage
+                else:
+                    #print(hull_cells[i])
+                    #ruler_count += 1 
+                    i = -1
+                ruler_walk[ruler_size].append(hull_cells[i])
+            ruler_counts.append(ruler_count)
 
-            # Calculate the slope of the log-log plot using linear regression
-            slope, intercept = np.polyfit(log_ruler_sizes, log_ruler_counts, 1)
-            fractal_dimension = -slope
-            print("Ruler Dimension:", fractal_dimension)
+        for r, walk in ruler_walk.items():
+            print("r =",r, ":", walk, '\n')
 
-            #plot the data points
-            plt.figure(figsize=(8, 6))
-            plt.plot(log_ruler_sizes, log_ruler_counts, marker='o', linestyle='-')
-            plt.title('Log-Log Plot of Ruler Sizes vs. Ruler Counts')
-            plt.xlabel('Log(Ruler Sizes)')
-            plt.ylabel('Log(Ruler Counts)')
+        log_ruler_sizes = [math.log(ruler_size) for ruler_size in ruler_sizes]
+        log_ruler_counts = [math.log(ruler_count) for ruler_count in ruler_counts]
 
-            regression_line = slope * np.array(log_ruler_sizes) + intercept
-            magic_line = (-1.75) * np.array(log_ruler_sizes) + intercept
-            plt.plot(log_ruler_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {slope:.2f})')
-            plt.plot(log_ruler_sizes, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = {-1.75:.2f})')
+        # Calculate the slope of the log-log plot using linear regression
+        slope, intercept = np.polyfit(log_ruler_sizes, log_ruler_counts, 1)
+        fractal_dimension = -slope
+        print("Ruler Dimension:", fractal_dimension)
 
-            plt.legend()
-            plt.grid(True)
-            plt.show()
-            return fractal_dimension
-        except Exception as error:
-            print(error)
-            return -1
+        #plot the data points
+        plt.figure(figsize=(8, 6))
+        plt.plot(log_ruler_sizes, log_ruler_counts, marker='o', linestyle='-')
+        plt.title('Log-Log Plot of Ruler Sizes vs. Ruler Counts')
+        plt.xlabel('Log(Ruler Sizes)')
+        plt.ylabel('Log(Ruler Counts)')
+
+        regression_line = slope * np.array(log_ruler_sizes) + intercept
+        magic_line = (-1.75) * np.array(log_ruler_sizes) + intercept
+        plt.plot(log_ruler_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {slope:.2f})')
+        plt.plot(log_ruler_sizes, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = {-1.75:.2f})')
+
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+        return fractal_dimension
+       # except Exception as error:
+       #     print(error)
+       #     return -1
 
     def calculate_fractal_dimension_avgdist(self):
         k_lengths = [2 ** i for i in range(1, int(math.log2(len(self.hull_list)//2))-1 )]
