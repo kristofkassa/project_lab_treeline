@@ -8,6 +8,7 @@ class GradientRandomMapSimulationStrategy(SimulationStrategy):
 
     def __init__(self):
         super().__init__()
+        self._ = 0
         self.neighbors = np.empty_like(self.occupied_cells, dtype=tuple)
         n = self.grid_size
         for i in range(1, n-1):
@@ -38,24 +39,24 @@ class GradientRandomMapSimulationStrategy(SimulationStrategy):
         gradient_values = np.arange(self.grid_size) / self.grid_size
 
         self.changes.clear()
-        for _ in range(self.grid_size ** 2): #regular Monte Carlo step
-            # Sample a random cell from the lattice
-            rand_cell = (np.random.randint(self.grid_size), np.random.randint(self.grid_size))
-            random_number = np.random.rand()
+        if self._ == 0: #if it is the 0th step (i.e. before the 1st step)
+            #clear out initial seeds
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    if self.occupied_cells[i,j] == 1:
+                        self.occupied_cells[i,j] = 0
+                        self.changes.add((i,j))
+            self._ += 1
+        elif self._ == 1: #if it is the 1st (and only) step
+            for i in range(self.grid_size):
+               #prob = self.c * gradient_values[i]
+                prob = 1 * gradient_values[i]
+                for j in range(self.grid_size):
+                    random_number = np.random.rand() #random number from [0.0, 1.0)
 
-            # Adjust the colonization and extinction probabilities based on the gradient value
-            x = rand_cell[0]
-            c_prob = self.c * gradient_values[x]#**2
-            e_prob = self.e #* gradient_values[i]
-
-            if self.occupied_cells[rand_cell]:
-                if random_number < e_prob:
-                    self.occupied_cells[rand_cell] = 0
-                    self.changes.add(rand_cell)
-            else:
-                if random_number < c_prob:
-                    self.occupied_cells[rand_cell] = 1
-                    self.changes.add(rand_cell)
-
-        # Update the list of occupied cells and their neighbors after the changes
-        self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()
+                    if random_number < prob:
+                        self.occupied_cells[i,j] = 1
+                        self.changes.add((i,j))
+            self._ += 1
+        else: #for further steps
+            pass #there is no further step

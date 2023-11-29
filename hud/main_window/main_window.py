@@ -12,7 +12,7 @@ from PySide6.QtCore import QRect, Qt
 import pyqtgraph as pg
 import numpy as np
 
-grid_size = 3
+grid_size = 4
 
 class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.

@@ -8,7 +8,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(50000)
-        self.grid_size = 2**8
+        self.grid_size = 2**7
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
@@ -144,7 +144,7 @@ class SimulationStrategy:
             Count the number of boxes that intersect with the hull.
             Calculate the slope of the log-log plot of box size versus the count of boxes that intersect the hull.
         """
-        box_sizes = [2 ** i for i in range(1,int(math.log2(self.grid_size)) -1)]
+        box_sizes = [2 ** i for i in range(0,int(math.log2(self.grid_size)) )]
         box_counts = []
 
         for box_size in box_sizes:
@@ -164,17 +164,19 @@ class SimulationStrategy:
         log_box_sizes = [math.log(size) for size in box_sizes]
         log_box_counts = [math.log(count) for count in box_counts]
 
-        # Calculate the slope of the log-log plot using linear regression
-        slope, intercept = np.polyfit(log_box_sizes, log_box_counts, 1)
-        fractal_dimension = -slope
-        print("Box Dimension:", fractal_dimension)
-
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_box_sizes, log_box_counts, marker='o', linestyle='-')
+        plt.plot(log_box_sizes[1:-1], log_box_counts[1:-1], 'o')
+        plt.plot([log_box_sizes[i] for i in [0,-1]], [log_box_counts[i] for i in [0,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of Box Sizes vs. Box Counts')
         plt.xlabel('Log(Box Sizes)')
         plt.ylabel('Log(Box Counts)')
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, intercept = np.polyfit(log_box_sizes[1:-1], log_box_counts[1:-1], 1)
+        fractal_dimension = -slope
+        print("Box Dimension:", fractal_dimension)
+
 
         #plot the actual and desired regression line
         regression_line = slope * np.array(log_box_sizes) + intercept
@@ -195,7 +197,7 @@ class SimulationStrategy:
         Then it estimates the dimension as the slope of log(C(r)) vs log(r).
         """
         max_radius = self.grid_size // 2
-        radius_sizes = [2 ** i for i in range(1,int(math.log2(max_radius)) -1)]
+        radius_sizes = [2 ** i for i in range(0,int(math.log2(max_radius)))]
         correlation_sums = []
 
         occupied_coordinates = [(x, y) for x in range(self.grid_size) for y in range(self.grid_size) if self.hull[x, y]]
@@ -215,17 +217,19 @@ class SimulationStrategy:
         log_radius_sizes = [math.log(size) for size in radius_sizes]
         log_correlation_sums = [math.log(correlation_sum) for correlation_sum in correlation_sums]
 
-        # Calculate the slope of the log-log plot using linear regression
-        slope, intercept = np.polyfit(log_radius_sizes, log_correlation_sums, 1)
-        fractal_dimension = slope
-        print("Correlation Dimenson:", fractal_dimension)
-
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_radius_sizes, log_correlation_sums, marker='o', linestyle='-')
+        plt.plot(log_radius_sizes[1:-1], log_correlation_sums[1:-1], 'o')
+        plt.plot([log_radius_sizes[i] for i in [0, -1]], [log_correlation_sums[i] for i in [0,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of Radius Sizes vs. Correlation Sums')
         plt.xlabel('Log(Radius Sizes)')
         plt.ylabel('Log(Correlation Sums)')
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, intercept = np.polyfit(log_radius_sizes[1:-1], log_correlation_sums[1:-1], 1)
+        fractal_dimension = slope
+        print("Correlation Dimenson:", fractal_dimension)
+
 
         #plot the actual and desired regression line
         regression_line = slope * np.array(log_radius_sizes) + intercept
@@ -242,11 +246,10 @@ class SimulationStrategy:
     def calculate_fractal_dimension_ruler(self):
         #try:
         max_size = self.grid_size #//4
-        ruler_sizes = [2 ** i for i in range(1, int(math.log2(max_size)) )]
+        ruler_sizes = [2 ** i for i in range(0, int(math.log2(max_size)) )]
         ruler_counts = []
 
         hull_cells = self.hull_list
-        ruler_walk = {}
 
         for ruler_size in ruler_sizes:
             _ = 0
@@ -274,17 +277,19 @@ class SimulationStrategy:
         log_ruler_sizes = [math.log(ruler_size) for ruler_size in ruler_sizes]
         log_ruler_counts = [math.log(ruler_count) for ruler_count in ruler_counts]
 
-        # Calculate the slope of the log-log plot using linear regression
-        slope, intercept = np.polyfit(log_ruler_sizes, log_ruler_counts, 1)
-        fractal_dimension = -slope
-        print("Ruler Dimension:", fractal_dimension)
-
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_ruler_sizes, log_ruler_counts, marker='o', linestyle='-')
+        plt.plot(log_ruler_sizes[1:-1], log_ruler_counts[1:-1], 'o')
+        plt.plot([log_ruler_sizes[i] for i in [0,-1]], [log_ruler_counts[i] for i in [0,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of Ruler Sizes vs. Ruler Counts')
         plt.xlabel('Log(Ruler Sizes)')
         plt.ylabel('Log(Ruler Counts)')
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, intercept = np.polyfit(log_ruler_sizes[1:-1], log_ruler_counts[1:-1], 1)
+        fractal_dimension = -slope
+        print("Ruler Dimension:", fractal_dimension)
+
 
         regression_line = slope * np.array(log_ruler_sizes) + intercept
         magic_line = (-1.75) * np.array(log_ruler_sizes) + intercept
@@ -300,7 +305,7 @@ class SimulationStrategy:
        #     return -1
 
     def calculate_fractal_dimension_avgdist(self):
-        k_lengths = [2 ** i for i in range(1, int(math.log2(len(self.hull_list)//2))-1 )]
+        k_lengths = [2 ** i for i in range(0, int(math.log2(len(self.hull_list)//2)) )]
         avg_dists = []
 
         for k in k_lengths:
@@ -317,17 +322,19 @@ class SimulationStrategy:
         log_k_lengths = [math.log(k) for k in k_lengths]
         log_avg_dists = [math.log(avg) for avg in avg_dists]
 
-        # Calculate the slope of the log-log plot using linear regression
-        slope, intercept = np.polyfit(log_k_lengths, log_avg_dists, 1)
-        fractal_dimension = 1/slope
-        print("AvgDist Dimension:", fractal_dimension)
-
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_k_lengths, log_avg_dists, marker='o', linestyle='-')
+        plt.plot(log_k_lengths[2:-2], log_avg_dists[2:-2], 'o')
+        plt.plot([log_k_lengths[i] for i in [0,1,-2,-1]], [log_avg_dists[i] for i in [0,1,-2,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of k values vs. Average Distances')
         plt.xlabel('Log(k)')
         plt.ylabel('Log(Average Distances)')
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, intercept = np.polyfit(log_k_lengths[2:-2], log_avg_dists[2:-2], 1)
+        fractal_dimension = 1/slope
+        print("AvgDist Dimension:", fractal_dimension)
+
 
         regression_line = slope * np.array(log_k_lengths) + intercept
         magic_line = (1/1.75) * np.array(log_k_lengths) + intercept
