@@ -166,7 +166,7 @@ class SimulationStrategy:
 
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_box_sizes[1:-1], log_box_counts[1:-1], 'o')
+        plt.plot(log_box_sizes[1:-1], log_box_counts[1:-1], 'o', color = 'lime')
         plt.plot([log_box_sizes[i] for i in [0,-1]], [log_box_counts[i] for i in [0,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of Box Sizes vs. Box Counts')
         plt.xlabel('Log(Box Sizes)')
@@ -219,7 +219,7 @@ class SimulationStrategy:
 
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_radius_sizes[1:-1], log_correlation_sums[1:-1], 'o')
+        plt.plot(log_radius_sizes[1:-1], log_correlation_sums[1:-1], 'o', color = 'lime')
         plt.plot([log_radius_sizes[i] for i in [0, -1]], [log_correlation_sums[i] for i in [0,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of Radius Sizes vs. Correlation Sums')
         plt.xlabel('Log(Radius Sizes)')
@@ -279,7 +279,7 @@ class SimulationStrategy:
 
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_ruler_sizes[1:-1], log_ruler_counts[1:-1], 'o')
+        plt.plot(log_ruler_sizes[1:-1], log_ruler_counts[1:-1], 'o', color = 'lime')
         plt.plot([log_ruler_sizes[i] for i in [0,-1]], [log_ruler_counts[i] for i in [0,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of Ruler Sizes vs. Ruler Counts')
         plt.xlabel('Log(Ruler Sizes)')
@@ -324,7 +324,7 @@ class SimulationStrategy:
 
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_k_lengths[2:-2], log_avg_dists[2:-2], 'o')
+        plt.plot(log_k_lengths[2:-2], log_avg_dists[2:-2], 'o', color = 'lime')
         plt.plot([log_k_lengths[i] for i in [0,1,-2,-1]], [log_avg_dists[i] for i in [0,1,-2,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of k values vs. Average Distances')
         plt.xlabel('Log(k)')
