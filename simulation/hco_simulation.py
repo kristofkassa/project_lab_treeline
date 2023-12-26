@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from math import log
 from simulation.simulation_strategy import SimulationStrategy
 
 class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
@@ -21,6 +22,7 @@ class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
         self._ = 0
 
     def simulatePopularization(self):
+        
         self.changes.clear()
         for _ in range(self.grid_size ** 2): #regular Monte Carlo step
             # Sample a random cell from the lattice
@@ -45,3 +47,36 @@ class HomogeneousContactProcessSimulationStrategy(SimulationStrategy):
 
         # Update the list of occupied cells and their neighbors after the changes
         self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()
+        
+        """
+        self.changes.clear()
+        if self._ == 0:
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    if self.occupied_cells[i,j]:
+                        self.occupied_cells[i,j]=0
+                        self.changes.add((i,j))
+            self._ += 1
+        elif self._ == 1:        
+            x = cantor(81*3*3*3, 1)
+            x = np.array([np.array([int(char) for char in s]) for s in x])
+            x = x.T
+            self.occupied_cells[:x.shape[1], :x.shape[0]] = x.T
+
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    if self.occupied_cells[i,j]:
+                        self.changes.add((i,j))
+            
+            self._ += 1
+        else:
+            pass
+        """
+
+def cantor(length, threshold):
+    if length >= threshold:
+        sequence = cantor(length // 3, threshold)
+        blanks = ["0" * (length // 3)] * int(log(length, 3) + 1)  # estimate and let zip toss extras
+        return ["1" * length] + [a + b + c for a, b, c in zip(sequence, blanks, sequence)]
+
+    return []

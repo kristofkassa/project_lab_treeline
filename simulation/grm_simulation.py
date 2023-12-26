@@ -14,23 +14,23 @@ class GradientRandomMapSimulationStrategy(SimulationStrategy):
         for i in range(1, n-1):
             for j in range(n):
                 self.neighbors[i][j] = (
-                    ((i+1)%n, j),
-                    (i, (j+1)%n),
                     ((i-1)%n, j),
+                    (i, (j+1)%n),
+                    ((i+1)%n, j),
                     (i, (j-1)%n)
                 )
         #copy the first and last column next to themselves for neighbor counting
         for j in range(n):
             self.neighbors[0][j] = (
-                (1, j),
-                (0, (j+1)%n),
                 (0, j),   #itself
+                (0, (j+1)%n),
+                (1, j),
                 (0, (j-1)%n)
             )
             self.neighbors[n-1][j] = (
-                (n-1, j),  #itself
-                (n-1, (j+1)%n),
                 (n-2, j),
+                (n-1, (j+1)%n),
+                (n-1, j),  #itself
                 (n-1, (j-1)%n)
             )
 

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 class SimulationStrategy:
 
     def __init__(self):
-        sys.setrecursionlimit(50000)
+        sys.setrecursionlimit(9*10**8)
         self.grid_size = 2**7
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
@@ -15,8 +15,12 @@ class SimulationStrategy:
         self.e = 0.2
         self.c = 0.8
         self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        self.simple_cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.hull_list = []
+
+        self.simple_hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        self.simple_hull_list = []
 
         self.occupied_and_neighboring_cell_indices = self.update_occupied_and_neighboring_cells()
 
@@ -34,30 +38,47 @@ class SimulationStrategy:
     def nextImage(self):
         pass
 
-    def _get_neighbors(self, i, j):
+    def _get_neighbors(self, i, j, neighborhood = "simple"):
+        n = self.grid_size
         neighbors = []
-        for x, y in [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)]:
+
+        directions = [
+            ((i-1), j),
+            (i, (j+1)%n),
+            ((i+1), j),
+            (i, (j-1)%n)
+        ] if neighborhood != "simple" else [
+            ((i-1), j),
+            (i, (j+1)),
+            ((i+1), j),
+            (i, (j-1))
+        ]
+
+        for x, y in directions:
             if 0 <= x < self.grid_size and 0 <= y < self.grid_size:
                 neighbors.append((x, y))
         return neighbors
 
-    def _dfs(self, i, j, visited, cluster):
+    def _dfs(self, i, j, visited, cluster, neighborhood = "simple"):
         visited.add((i, j))
         cluster.add((i, j))
-        for x, y in self._get_neighbors(i, j):
+        for x, y in self._get_neighbors(i, j, neighborhood):
             if self.occupied_cells[x, y] and (x, y) not in visited:
-                self._dfs(x, y, visited, cluster)
+                self._dfs(x, y, visited, cluster, neighborhood)
 
     def identifyPercolationClusters(self):
         self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        self.simple_cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        
+        #Cylindrical giant cluster
         visited = set()
         clusters = []
-
+        
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 if self.occupied_cells[i, j] and (i, j) not in visited:
-                    cluster = set()
-                    self._dfs(i, j, visited, cluster)
+                    cluster = set()                    
+                    self._dfs(i, j, visited, cluster, "cylindrical")
                     clusters.append(cluster)
 
         if not clusters:
@@ -67,13 +88,43 @@ class SimulationStrategy:
             self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
             for i, j in largest_cluster:
                 self.cluster[i, j] = True
+        
+        #print(self.cluster)
 
-    def _next_edge_node(self, i, j, prev_i, prev_j):
+        #Simple giant cluster
+        visited = set()
+        clusters = []
+
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if self.occupied_cells[i, j] and (i, j) not in visited:
+                    cluster = set()
+                    self._dfs(i, j, visited, cluster, "simple")
+                    clusters.append(cluster)
+
+        if not clusters:
+            self.simple_cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        else:
+            largest_cluster = max(clusters, key=len)
+            self.simple_cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+            for i, j in largest_cluster:
+                self.simple_cluster[i, j] = True
+        
+        #print(self.simple_cluster)
+        #print(np.array_equal(self.cluster, self.simple_cluster))
+
+    def _next_edge_node(self, i, j, prev_i, prev_j, neighborhood = "simple"):
+        n = self.grid_size
         directions = [
-            (i - 1, j),
-            (i, j + 1),
-            (i + 1, j),
-            (i, j - 1),
+            ((i-1), j),
+            (i, (j+1)%n),
+            ((i+1), j),
+            (i, (j-1)%n)
+        ] if neighborhood != "simple" else [
+            ((i-1), j),
+            (i, (j+1)),
+            ((i+1), j),
+            (i, (j-1))
         ]
 
         # Try to find the index of the previous node; if not found, start from 0
@@ -88,12 +139,13 @@ class SimulationStrategy:
                 if self.cluster[next_i, next_j]:
                     return (next_i, next_j)
 
-
-
     def markHull(self):
         self.hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        self.simple_hull = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        self.hull_list = []
+        self.simple_hull_list = []
 
-        # Find an initial edge node arbitrarily
+        # Find an initial edge node arbitrarily for cylindrical topology
         for j in range(self.grid_size):
             for i in range(self.grid_size):
                 if self.cluster[i, j]:
@@ -103,7 +155,7 @@ class SimulationStrategy:
                 continue
             break
 
-        # Find the last edge node arbitrarily
+        # Find the last edge node arbitrarily for cylindrical topology
         for j in reversed(range(self.grid_size)):
             for i in range(self.grid_size):
                 if self.cluster[i, j]:
@@ -115,16 +167,16 @@ class SimulationStrategy:
 
         print(start_i, start_j, end_i, end_j)
 
-        # Start edge following
+        # Start edge following for cylindrical case
         prev_i, prev_j = start_i, start_j
-        curr_i, curr_j = self._next_edge_node(start_i, start_j, start_i, start_j)
+        curr_i, curr_j = self._next_edge_node(start_i, start_j, start_i, start_j, "cylindrical")
         self.hull[start_i, start_j] = True
         self.hull_list.append((start_i, start_j))
 
-        while curr_i != end_i or curr_j != end_j:
+        while self.hull[end_i, end_j] == 0 or (curr_i != start_i or curr_j != start_j):
             self.hull[curr_i, curr_j] = True
             self.hull_list.append((curr_i, curr_j))
-            next_i, next_j = self._next_edge_node(curr_i, curr_j, prev_i, prev_j)
+            next_i, next_j = self._next_edge_node(curr_i, curr_j, prev_i, prev_j, "cylindrical")
             prev_i, prev_j = curr_i, curr_j
             curr_i, curr_j = next_i, next_j
 
@@ -132,6 +184,46 @@ class SimulationStrategy:
         self.hull_list.append((curr_i, curr_j))
 
         #print(self.hull_list)
+
+        # Find an initial edge node arbitrarily for simple topology
+        for j in range(self.grid_size):
+            for i in range(self.grid_size):
+                if self.simple_cluster[i, j]:
+                    start_i, start_j = i, j
+                    break
+            else:
+                continue
+            break
+
+        # Find the last edge node arbitrarily for simple topology
+        for j in reversed(range(self.grid_size)):
+            for i in range(self.grid_size):
+                if self.simple_cluster[i, j]:
+                    end_i, end_j = i, j
+                    break
+            else:
+                continue
+            break
+
+        #Start edge following for simple case 
+        prev_i, prev_j = start_i, start_j
+        curr_i, curr_j = self._next_edge_node(start_i, start_j, start_i, start_j, "simple")
+        self.simple_hull[start_i, start_j] = True
+        self.simple_hull_list.append((start_i, start_j))
+
+        while self.simple_hull[end_i, end_j] == 0: #or (curr_i != start_i or curr_j != start_j):
+            self.simple_hull[curr_i, curr_j] = True
+            self.simple_hull_list.append((curr_i, curr_j))
+            next_i, next_j = self._next_edge_node(curr_i, curr_j, prev_i, prev_j, "simple")
+            prev_i, prev_j = curr_i, curr_j
+            curr_i, curr_j = next_i, next_j
+
+        self.simple_hull[curr_i, curr_j] = True  # Mark the starting node again to close the hull
+        self.simple_hull_list.append((curr_i, curr_j))
+
+        #print(self.simple_hull_list)
+
+        
         self.calculate_fractal_dimension_ruler()
         self.calculate_fractal_dimension_avgdist()
         return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation()
@@ -161,19 +253,19 @@ class SimulationStrategy:
                         break
             box_counts.append(count)
 
-        log_box_sizes = [math.log(size) for size in box_sizes]
-        log_box_counts = [math.log(count) for count in box_counts]
+        log_box_sizes = [math.log2(size) for size in box_sizes]
+        log_box_counts = [math.log2(count) for count in box_counts]
 
         #plot the data points
         plt.figure(figsize=(8, 6))
-        plt.plot(log_box_sizes[1:-1], log_box_counts[1:-1], 'o', color = 'lime')
-        plt.plot([log_box_sizes[i] for i in [0,-1]], [log_box_counts[i] for i in [0,-1]], 'o', color = 'gray')
+        plt.plot(log_box_sizes[2:-4], log_box_counts[2:-4], 'o', color = 'lime')
+        plt.plot([log_box_sizes[i] for i in [0,1,-4,-3,-2,-1]], [log_box_counts[i] for i in [0,1,-4,-3,-2,-1]], 'o', color = 'gray')
         plt.title('Log-Log Plot of Box Sizes vs. Box Counts')
         plt.xlabel('Log(Box Sizes)')
         plt.ylabel('Log(Box Counts)')
 
         # Calculate the slope of the log-log plot using linear regression
-        slope, intercept = np.polyfit(log_box_sizes[1:-1], log_box_counts[1:-1], 1)
+        slope, intercept = np.polyfit(log_box_sizes[2:-4], log_box_counts[2:-4], 1)
         fractal_dimension = -slope
         print("Box Dimension:", fractal_dimension)
 
@@ -196,26 +288,29 @@ class SimulationStrategy:
         This method computes the correlation sum C(r) which counts the number of point pairs that have distance less than r.
         Then it estimates the dimension as the slope of log(C(r)) vs log(r).
         """
+        #return 1
         max_radius = self.grid_size // 2
         radius_sizes = [2 ** i for i in range(0,int(math.log2(max_radius)))]
         correlation_sums = []
 
-        occupied_coordinates = [(x, y) for x in range(self.grid_size) for y in range(self.grid_size) if self.hull[x, y]]
-        num_points = len(occupied_coordinates)
+        hull_cells = list(set(self.hull_list)) #unique list of hull cells
+        hull_num = len(hull_cells)
+        distances = np.zeros((hull_num, hull_num), dtype=float)
+        print("Distance matrix calculation has started.")
+        for i in range(hull_num):
+            print(f"i = {i}")
+            x1, y1 = hull_cells[i]
+            for j in range(i+1, hull_num):
+                x2, y2 = hull_cells[j]
+                distances[i,j] = distances[j,i] = (x2 - x1)**2 + (y2 - y1)**2
 
         for radius in radius_sizes:
-            correlation_sum = 0
-            for i in range(num_points):
-                for j in range(i+1, num_points):
-                    x1, y1 = occupied_coordinates[i]
-                    x2, y2 = occupied_coordinates[j]
-                    distance = dist(occupied_coordinates[i], occupied_coordinates[j])
-                    if distance <= radius:
-                        correlation_sum += 1
-            correlation_sums.append(correlation_sum)
+            print(f"CorrSum({radius}) is being counted.")
+            x = (np.count_nonzero(distances <= radius**2) - hull_num)/2            
+            correlation_sums.append(x)
 
-        log_radius_sizes = [math.log(size) for size in radius_sizes]
-        log_correlation_sums = [math.log(correlation_sum) for correlation_sum in correlation_sums]
+        log_radius_sizes = [math.log2(size) for size in radius_sizes]
+        log_correlation_sums = [math.log2(correlation_sum) for correlation_sum in correlation_sums]
 
         #plot the data points
         plt.figure(figsize=(8, 6))
@@ -244,12 +339,13 @@ class SimulationStrategy:
         return fractal_dimension
 
     def calculate_fractal_dimension_ruler(self):
+        #return 1
         #try:
         max_size = self.grid_size #//4
         ruler_sizes = [2 ** i for i in range(0, int(math.log2(max_size)) )]
         ruler_counts = []
 
-        hull_cells = self.hull_list
+        hull_cells = self.simple_hull_list
 
         for ruler_size in ruler_sizes:
             _ = 0
@@ -274,8 +370,8 @@ class SimulationStrategy:
 
         
 
-        log_ruler_sizes = [math.log(ruler_size) for ruler_size in ruler_sizes]
-        log_ruler_counts = [math.log(ruler_count) for ruler_count in ruler_counts]
+        log_ruler_sizes = [math.log2(ruler_size) for ruler_size in ruler_sizes]
+        log_ruler_counts = [math.log2(ruler_count) for ruler_count in ruler_counts]
 
         #plot the data points
         plt.figure(figsize=(8, 6))
@@ -305,22 +401,23 @@ class SimulationStrategy:
        #     return -1
 
     def calculate_fractal_dimension_avgdist(self):
-        k_lengths = [2 ** i for i in range(0, int(math.log2(len(self.hull_list)//2)) )]
+        #return 1
+        k_lengths = [2 ** i for i in range(0, int(math.log2(len(self.simple_hull_list)//2)) )]
         avg_dists = []
 
         for k in k_lengths:
-            m = len(self.hull_list) // k
+            m = len(self.simple_hull_list) // k
             avg = 0.0
             for i in range(1, m):
                 print("k=",k,", i*k=",i*k,", m=",m)
-                avg += dist(self.hull_list[i*k], self.hull_list[(i-1)*k])
+                avg += dist(self.simple_hull_list[i*k], self.simple_hull_list[(i-1)*k])
             avg /= m
             print("k=", k, "  avg=", avg)
 
             avg_dists.append(avg)
 
-        log_k_lengths = [math.log(k) for k in k_lengths]
-        log_avg_dists = [math.log(avg) for avg in avg_dists]
+        log_k_lengths = [math.log2(k) for k in k_lengths]
+        log_avg_dists = [math.log2(avg) for avg in avg_dists]
 
         #plot the data points
         plt.figure(figsize=(8, 6))
