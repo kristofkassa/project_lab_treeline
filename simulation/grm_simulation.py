@@ -37,7 +37,7 @@ class GradientRandomMapSimulationStrategy(SimulationStrategy):
     def simulatePopularization(self):
         # Pre-calculate the gradient values for each cell
         n = self.grid_size
-        p_max = 0.9
+        p_max = 0.8
         gradient_values = np.arange(n) * ((10*p_max-6)/(5*n-10)) + ((6-5*p_max)*n - 6)/(5*n-10)
 
         self.changes.clear()
