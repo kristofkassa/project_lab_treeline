@@ -222,7 +222,6 @@ class SimulationStrategy:
         self.simple_hull_list.append((curr_i, curr_j))
 
         #print(self.simple_hull_list)
-
         
         self.calculate_fractal_dimension_ruler()
         self.calculate_fractal_dimension_avgdist()
