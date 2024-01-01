@@ -18,7 +18,7 @@ class CellularAutomataGridView(QGraphicsView):
     """The Qt Graphics Grid where the whole simulation takes place.
     """
 
-    def __init__(self, context: SimulationContext, plotWidget, densityPlotWidget, box_counting_dimension_textbox, correlation_dimension_textbox):
+    def __init__(self, context: SimulationContext, plotWidget, densityPlotWidget, box_counting_dimension_textbox, correlation_dimension_textbox, ruler_dimension_textbox, avgdist_dimension_textbox):
         QGraphicsView.__init__(self)
 
         self.time = 0
@@ -27,6 +27,8 @@ class CellularAutomataGridView(QGraphicsView):
         self.densityPlotWidget = densityPlotWidget
         self.box_counting_dimension_textbox = box_counting_dimension_textbox
         self.correlation_dimension_textbox = correlation_dimension_textbox
+        self.ruler_dimension_textbox = ruler_dimension_textbox
+        self.avgdist_dimension_textbox = avgdist_dimension_textbox
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
         self.setGeometry(0, 0, 1200, 800)
@@ -114,13 +116,17 @@ class CellularAutomataGridView(QGraphicsView):
     def markHull(self): 
         self.context._strategy.identifyPercolationClusters()
 
-        box_counting_dimension, correlation_dimension = self.context._strategy.markHull()
+        box_counting_dimension, correlation_dimension, ruler_dimension, avgdist_dimension = self.context._strategy.markHull()
         self.box_counting_dimension_textbox.append(f"Box counting dimension: {box_counting_dimension}")
         self.correlation_dimension_textbox.append(f"Correlation dimension: {correlation_dimension}")
+        self.ruler_dimension_textbox.append(f"Ruler dimension: {ruler_dimension}")
+        self.avgdist_dimension_textbox.append(f"AvgDist dimension: {avgdist_dimension}")
 
         # Scroll to the bottom to display the latest result
         self.box_counting_dimension_textbox.verticalScrollBar().setValue(self.box_counting_dimension_textbox.verticalScrollBar().maximum())
         self.correlation_dimension_textbox.verticalScrollBar().setValue(self.correlation_dimension_textbox.verticalScrollBar().maximum())
+        self.ruler_dimension_textbox.verticalScrollBar().setValue(self.ruler_dimension_textbox.verticalScrollBar().maximum())
+        self.avgdist_dimension_textbox.verticalScrollBar().setValue(self.avgdist_dimension_textbox.verticalScrollBar().maximum())
 
         painter = QPainter(self.image)
         for (i, j), value in np.ndenumerate(self.context._strategy.hull):
@@ -142,6 +148,9 @@ class CellularAutomataGridView(QGraphicsView):
         self.context.initializePopulation()
         self.drawInitialPopulation()
 
+        if isinstance(self.context._strategy, GradientRandomMapSimulationStrategy) :
+            self.context._strategy.running = False
+
     def startTimer(self):
         self.timer.start(100)
         self.dimensionTimer.start(5000)
@@ -158,11 +167,11 @@ class CellularAutomataGridView(QGraphicsView):
     def setStrategy(self, index):
         match index:
             case 0:
-                self.context.strategy = GradientContactProcessSimulationStrategy() 
+                self.context.strategy = GradientRandomMapSimulationStrategy() 
             case 1:
                 self.context.strategy = HomogeneousContactProcessSimulationStrategy()
             case 2:
-                self.context.strategy = GradientRandomMapSimulationStrategy()
+                self.context.strategy = GradientContactProcessSimulationStrategy()
             case 3:
                 self.context.strategy = ImageTreelineSimulationStrategy()
         self.resetGrid()
@@ -209,11 +218,24 @@ class MainWindow(QMainWindow):
         correlation_dimension_textbox.setReadOnly(True)
         correlation_dimension_textbox.setFixedHeight(30)
 
+        # Create a QTextEdit for the fractal dimension result
+        ruler_dimension_textbox = QTextEdit()
+        ruler_dimension_textbox.setReadOnly(True)
+        ruler_dimension_textbox.setFixedHeight(30)
+
+        # Create a QTextEdit for the fractal dimension result
+        avgdist_dimension_textbox = QTextEdit()
+        avgdist_dimension_textbox.setReadOnly(True)
+        avgdist_dimension_textbox.setFixedHeight(30)
+
         textLayout.addWidget(box_counting_dimension_textbox)
         textLayout.addWidget(correlation_dimension_textbox)
+        textLayout.addWidget(ruler_dimension_textbox)
+        textLayout.addWidget(avgdist_dimension_textbox)
 
         # Create the grid view
-        gridView = CellularAutomataGridView(context, population_plot, density_plot, box_counting_dimension_textbox, correlation_dimension_textbox)
+        gridView = CellularAutomataGridView(context, population_plot, density_plot, box_counting_dimension_textbox, 
+                                            correlation_dimension_textbox, ruler_dimension_textbox, avgdist_dimension_textbox)
         layout = QVBoxLayout()
 
         # Create the control widgets
@@ -224,9 +246,9 @@ class MainWindow(QMainWindow):
         selectionArea.setLayout(selectionLayout)
 
         self.patternBox = QComboBox()
-        self.patternBox.addItem('Gradient Contract Process')
-        self.patternBox.addItem('Homogeneous Contact Process')
         self.patternBox.addItem('Gradient Random Map')
+        self.patternBox.addItem('Homogeneous Contact Process')
+        self.patternBox.addItem('Gradient Contract Process')
         self.patternBox.addItem('Real image data')
         self.patternBox.currentIndexChanged.connect(gridView.setStrategy)
 

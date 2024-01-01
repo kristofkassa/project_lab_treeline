@@ -223,9 +223,7 @@ class SimulationStrategy:
 
         #print(self.simple_hull_list)
         
-        self.calculate_fractal_dimension_ruler()
-        self.calculate_fractal_dimension_avgdist()
-        return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation()
+        return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation(), self.calculate_fractal_dimension_ruler(), self.calculate_fractal_dimension_avgdist()
 
     def calculate_fractal_dimension_boxcounting(self):
         """

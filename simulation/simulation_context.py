@@ -1,5 +1,6 @@
 import numpy as np
 from simulation.simulation_strategy import SimulationStrategy
+from simulation.grm_simulation import GradientRandomMapSimulationStrategy
 
 class SimulationContext:
 
@@ -51,4 +52,8 @@ class SimulationContext:
         self._strategy.occupied_cells[row_indices, col_indices] = True
 
     def simulatePopularizationWithCallback(self):
-        self._strategy.simulatePopularization()
+        if isinstance(self._strategy, GradientRandomMapSimulationStrategy) :
+            if not self._strategy.running:
+                self._strategy.simulatePopularization()
+        else:
+            self._strategy.simulatePopularization()
