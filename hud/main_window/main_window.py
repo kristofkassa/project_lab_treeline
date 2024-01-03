@@ -116,7 +116,7 @@ class CellularAutomataGridView(QGraphicsView):
     def markHull(self): 
         self.context._strategy.identifyPercolationClusters()
 
-        box_counting_dimension, correlation_dimension, ruler_dimension, avgdist_dimension = self.context._strategy.markHull()
+        box_counting_dimension, correlation_dimension, ruler_dimension, avgdist_dimension = self.context._strategy.calculate_fractal_dimensions()
         self.box_counting_dimension_textbox.append(f"Box counting dimension: {box_counting_dimension}")
         self.correlation_dimension_textbox.append(f"Correlation dimension: {correlation_dimension}")
         self.ruler_dimension_textbox.append(f"Ruler dimension: {ruler_dimension}")
@@ -150,6 +150,10 @@ class CellularAutomataGridView(QGraphicsView):
 
         if isinstance(self.context._strategy, GradientRandomMapSimulationStrategy) :
             self.context._strategy.running = False
+
+    def autoSimulate(self):
+        self.context._strategy.autoSimulate()
+        return
 
     def startTimer(self):
         self.timer.start(100)
@@ -260,6 +264,8 @@ class MainWindow(QMainWindow):
 
         self.percolationButton = QPushButton('&Identify percolation clusters')
         self.hullButton = QPushButton('&Mark Hull')
+        self.autoSimulate = QPushButton('&Auto Sim')
+        self.autoSimulate.setStyleSheet('QPushButton {background-color: green; color: white;}')
 
         self.startButton.clicked.connect(gridView.startTimer)
         self.nextImageButton.clicked.connect(gridView.nextImage)
@@ -267,6 +273,7 @@ class MainWindow(QMainWindow):
         self.restetButton.clicked.connect(gridView.resetGrid)
         self.percolationButton.clicked.connect(gridView.markCluster)
         self.hullButton.clicked.connect(gridView.markHull)
+        self.autoSimulate.clicked.connect(gridView.autoSimulate)
 
         self.input_colon = QLineEdit()
         self.input_colon.setMaxLength(5)
@@ -287,6 +294,7 @@ class MainWindow(QMainWindow):
         selectionLayout.addWidget(self.input_extinction)
         selectionLayout.addWidget(self.percolationButton)
         selectionLayout.addWidget(self.hullButton)
+        selectionLayout.addWidget(self.autoSimulate)
 
         # Create the main widget
         widget = QWidget()

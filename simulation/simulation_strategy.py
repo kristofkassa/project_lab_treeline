@@ -1,8 +1,11 @@
 from abc import abstractmethod
+from datetime import datetime
+import os
 import numpy as np
 import sys
 import math
 import matplotlib.pyplot as plt
+import pandas as pd
 
 class SimulationStrategy:
 
@@ -222,7 +225,10 @@ class SimulationStrategy:
         self.simple_hull_list.append((curr_i, curr_j))
 
         #print(self.simple_hull_list)
-        
+
+
+    def calculate_fractal_dimensions(self):
+        self.markHull()
         return self.calculate_fractal_dimension_boxcounting(), self.calculate_fractal_dimension_correlation(), self.calculate_fractal_dimension_ruler(), self.calculate_fractal_dimension_avgdist()
 
     def calculate_fractal_dimension_boxcounting(self):
@@ -233,6 +239,36 @@ class SimulationStrategy:
             Count the number of boxes that intersect with the hull.
             Calculate the slope of the log-log plot of box size versus the count of boxes that intersect the hull.
         """
+
+        log_box_sizes, log_box_counts = self.get_box_details()
+
+        #plot the data points
+        plt.figure(figsize=(8, 6))
+        plt.plot(log_box_sizes[2:-4], log_box_counts[2:-4], 'o', color = 'lime')
+        plt.plot([log_box_sizes[i] for i in [0,1,-4,-3,-2,-1]], [log_box_counts[i] for i in [0,1,-4,-3,-2,-1]], 'o', color = 'gray')
+        plt.title('Log-Log Plot of Box Sizes vs. Box Counts')
+        plt.xlabel('Log(Box Sizes)')
+        plt.ylabel('Log(Box Counts)')
+
+        # Calculate the slope of the log-log plot using linear regression
+        slope, intercept = np.polyfit(log_box_sizes[2:-4], log_box_counts[2:-4], 1)
+        fractal_dimension = -slope
+        # print("Box Dimension:", fractal_dimension)
+
+
+        #plot the actual and desired regression line
+        regression_line = slope * np.array(log_box_sizes) + intercept
+        magic_line = (-1.75) * np.array(log_box_sizes) + intercept
+        plt.plot(log_box_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {slope:.2f})')
+        plt.plot(log_box_sizes, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = {-1.75:.2f})')
+
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        return fractal_dimension
+    
+    def get_box_details(self):
         box_sizes = [2 ** i for i in range(0,int(math.log2(self.grid_size)) )]
         box_counts = []
 
@@ -253,31 +289,7 @@ class SimulationStrategy:
         log_box_sizes = [math.log2(size) for size in box_sizes]
         log_box_counts = [math.log2(count) for count in box_counts]
 
-        #plot the data points
-        plt.figure(figsize=(8, 6))
-        plt.plot(log_box_sizes[2:-4], log_box_counts[2:-4], 'o', color = 'lime')
-        plt.plot([log_box_sizes[i] for i in [0,1,-4,-3,-2,-1]], [log_box_counts[i] for i in [0,1,-4,-3,-2,-1]], 'o', color = 'gray')
-        plt.title('Log-Log Plot of Box Sizes vs. Box Counts')
-        plt.xlabel('Log(Box Sizes)')
-        plt.ylabel('Log(Box Counts)')
-
-        # Calculate the slope of the log-log plot using linear regression
-        slope, intercept = np.polyfit(log_box_sizes[2:-4], log_box_counts[2:-4], 1)
-        fractal_dimension = -slope
-        print("Box Dimension:", fractal_dimension)
-
-
-        #plot the actual and desired regression line
-        regression_line = slope * np.array(log_box_sizes) + intercept
-        magic_line = (-1.75) * np.array(log_box_sizes) + intercept
-        plt.plot(log_box_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {slope:.2f})')
-        plt.plot(log_box_sizes, magic_line, linestyle='--', color='orange', label=f'Predicted Line (Slope = {-1.75:.2f})')
-
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-
-        return fractal_dimension
+        return log_box_sizes, log_box_counts
     
     def calculate_fractal_dimension_correlation(self):
         """
@@ -285,29 +297,8 @@ class SimulationStrategy:
         This method computes the correlation sum C(r) which counts the number of point pairs that have distance less than r.
         Then it estimates the dimension as the slope of log(C(r)) vs log(r).
         """
-        #return 1
-        max_radius = self.grid_size // 2
-        radius_sizes = [2 ** i for i in range(0,int(math.log2(max_radius)))]
-        correlation_sums = []
 
-        hull_cells = list(set(self.hull_list)) #unique list of hull cells
-        hull_num = len(hull_cells)
-        distances = np.zeros((hull_num, hull_num), dtype=float)
-        print("Distance matrix calculation has started.")
-        for i in range(hull_num):
-            print(f"i = {i}")
-            x1, y1 = hull_cells[i]
-            for j in range(i+1, hull_num):
-                x2, y2 = hull_cells[j]
-                distances[i,j] = distances[j,i] = (x2 - x1)**2 + (y2 - y1)**2
-
-        for radius in radius_sizes:
-            print(f"CorrSum({radius}) is being counted.")
-            x = (np.count_nonzero(distances <= radius**2) - hull_num)/2            
-            correlation_sums.append(x)
-
-        log_radius_sizes = [math.log2(size) for size in radius_sizes]
-        log_correlation_sums = [math.log2(correlation_sum) for correlation_sum in correlation_sums]
+        log_radius_sizes, log_correlation_sums = self.get_correlation_details()
 
         #plot the data points
         plt.figure(figsize=(8, 6))
@@ -320,7 +311,7 @@ class SimulationStrategy:
         # Calculate the slope of the log-log plot using linear regression
         slope, intercept = np.polyfit(log_radius_sizes[1:-1], log_correlation_sums[1:-1], 1)
         fractal_dimension = slope
-        print("Correlation Dimenson:", fractal_dimension)
+        # print("Correlation Dimenson:", fractal_dimension)
 
 
         #plot the actual and desired regression line
@@ -334,41 +325,37 @@ class SimulationStrategy:
         plt.show()
 
         return fractal_dimension
+    
+    def get_correlation_details(self):
+        
+        max_radius = self.grid_size // 2
+        radius_sizes = [2 ** i for i in range(0,int(math.log2(max_radius)))]
+        correlation_sums = []
+
+        hull_cells = list(set(self.hull_list)) #unique list of hull cells
+        hull_num = len(hull_cells)
+        distances = np.zeros((hull_num, hull_num), dtype=float)
+        # print("Distance matrix calculation has started.")
+        for i in range(hull_num):
+            # print(f"i = {i}")
+            x1, y1 = hull_cells[i]
+            for j in range(i+1, hull_num):
+                x2, y2 = hull_cells[j]
+                distances[i,j] = distances[j,i] = (x2 - x1)**2 + (y2 - y1)**2
+
+        for radius in radius_sizes:
+            # print(f"CorrSum({radius}) is being counted.")
+            x = (np.count_nonzero(distances <= radius**2) - hull_num)/2            
+            correlation_sums.append(x)
+
+        log_radius_sizes = [math.log2(size) for size in radius_sizes]
+        log_correlation_sums = [math.log2(correlation_sum) for correlation_sum in correlation_sums]
+
+        return log_radius_sizes, log_correlation_sums
 
     def calculate_fractal_dimension_ruler(self):
-        #return 1
-        #try:
-        max_size = self.grid_size #//4
-        ruler_sizes = [2 ** i for i in range(0, int(math.log2(max_size)) )]
-        ruler_counts = []
 
-        hull_cells = self.simple_hull_list
-
-        for ruler_size in ruler_sizes:
-            _ = 0
-            ruler_count = 0
-            print("r=", ruler_size)
-            cell0 = hull_cells[0]
-            i = 1
-            while i < len(hull_cells):
-                while (i < len(hull_cells)) and (dist(cell0, hull_cells[i]) <= ruler_size):
-                    i+=1
-                print(cell0)
-                cell0 = hull_cells[i-1]
-                ruler_count += 1
-
-                _ += 1
-                if _ > self.grid_size ** 2: 
-                    print("INFINITE LOOP")
-                    break #to avoid inifite loops in developement stage
-            print(hull_cells[i-1])
-            ruler_counts.append(ruler_count)
-            print("count = ", ruler_count, "\n")
-
-        
-
-        log_ruler_sizes = [math.log2(ruler_size) for ruler_size in ruler_sizes]
-        log_ruler_counts = [math.log2(ruler_count) for ruler_count in ruler_counts]
+        log_ruler_sizes, log_ruler_counts = self.get_ruler_details()
 
         #plot the data points
         plt.figure(figsize=(8, 6))
@@ -381,7 +368,7 @@ class SimulationStrategy:
         # Calculate the slope of the log-log plot using linear regression
         slope, intercept = np.polyfit(log_ruler_sizes[1:-1], log_ruler_counts[1:-1], 1)
         fractal_dimension = -slope
-        print("Ruler Dimension:", fractal_dimension)
+        # print("Ruler Dimension:", fractal_dimension)
 
 
         regression_line = slope * np.array(log_ruler_sizes) + intercept
@@ -393,28 +380,44 @@ class SimulationStrategy:
         plt.grid(True)
         plt.show()
         return fractal_dimension
-       # except Exception as error:
-       #     print(error)
-       #     return -1
+       
+    def get_ruler_details(self):
+        
+        max_size = self.grid_size #//4
+        ruler_sizes = [2 ** i for i in range(0, int(math.log2(max_size)) )]
+        ruler_counts = []
+
+        hull_cells = self.simple_hull_list
+
+        for ruler_size in ruler_sizes:
+            _ = 0
+            ruler_count = 0
+            # print("r=", ruler_size)
+            cell0 = hull_cells[0]
+            i = 1
+            while i < len(hull_cells):
+                while (i < len(hull_cells)) and (dist(cell0, hull_cells[i]) <= ruler_size):
+                    i+=1
+                # print(cell0)
+                cell0 = hull_cells[i-1]
+                ruler_count += 1
+
+                _ += 1
+                if _ > self.grid_size ** 2: 
+                    # print("INFINITE LOOP")
+                    break #to avoid inifite loops in developement stage
+            print(hull_cells[i-1])
+            ruler_counts.append(ruler_count)
+            # print("count = ", ruler_count, "\n")
+
+        log_ruler_sizes = [math.log2(ruler_size) for ruler_size in ruler_sizes]
+        log_ruler_counts = [math.log2(ruler_count) for ruler_count in ruler_counts]
+
+        return log_ruler_sizes, log_ruler_counts
 
     def calculate_fractal_dimension_avgdist(self):
-        #return 1
-        k_lengths = [2 ** i for i in range(0, int(math.log2(len(self.simple_hull_list)//2)) )]
-        avg_dists = []
 
-        for k in k_lengths:
-            m = len(self.simple_hull_list) // k
-            avg = 0.0
-            for i in range(1, m):
-                print("k=",k,", i*k=",i*k,", m=",m)
-                avg += dist(self.simple_hull_list[i*k], self.simple_hull_list[(i-1)*k])
-            avg /= m
-            print("k=", k, "  avg=", avg)
-
-            avg_dists.append(avg)
-
-        log_k_lengths = [math.log2(k) for k in k_lengths]
-        log_avg_dists = [math.log2(avg) for avg in avg_dists]
+        log_k_lengths, log_avg_dists = self.get_avg_dist_details()
 
         #plot the data points
         plt.figure(figsize=(8, 6))
@@ -427,7 +430,7 @@ class SimulationStrategy:
         # Calculate the slope of the log-log plot using linear regression
         slope, intercept = np.polyfit(log_k_lengths[2:-2], log_avg_dists[2:-2], 1)
         fractal_dimension = 1/slope
-        print("AvgDist Dimension:", fractal_dimension)
+        # print("AvgDist Dimension:", fractal_dimension)
 
 
         regression_line = slope * np.array(log_k_lengths) + intercept
@@ -439,6 +442,27 @@ class SimulationStrategy:
         plt.grid(True)
         plt.show()
         return fractal_dimension
+    
+    def get_avg_dist_details(self):
+        
+        k_lengths = [2 ** i for i in range(0, int(math.log2(len(self.simple_hull_list)//2)) )]
+        avg_dists = []
+
+        for k in k_lengths:
+            m = len(self.simple_hull_list) // k
+            avg = 0.0
+            for i in range(1, m):
+                # print("k=",k,", i*k=",i*k,", m=",m)
+                avg += dist(self.simple_hull_list[i*k], self.simple_hull_list[(i-1)*k])
+            avg /= m
+            # print("k=", k, "  avg=", avg)
+
+            avg_dists.append(avg)
+
+        log_k_lengths = [math.log2(k) for k in k_lengths]
+        log_avg_dists = [math.log2(avg) for avg in avg_dists]
+
+        return log_k_lengths, log_avg_dists
 
     def topleft_cell_of_hull(self):
         hull_cells = [(x, y) for x in range(self.grid_size) for y in range(self.grid_size) if self.hull[x, y]]
@@ -452,6 +476,55 @@ class SimulationStrategy:
 
         return (x0, y0)
 
+    def autoSimulate(self):
+
+        box_results = []
+        corr_results = []
+        ruler_results = []
+        avgdist_results = []
+
+        for counter in range(100):
+            self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+            self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+            self.simulatePopularization()
+            self.identifyPercolationClusters()
+            self.markHull()
+
+            box = self.get_box_details()
+            box_results.append(box)
+
+            corr = self.get_correlation_details()
+            corr_results.append(corr)
+
+            ruler = self.get_ruler_details()
+            ruler_results.append(ruler)
+
+            avgdist = self.get_avg_dist_details()
+            avgdist_results.append(avgdist)
+
+        self.create_excel_file(box_results, corr_results, ruler_results, avgdist_results)
+    
+    def create_excel_file(self, box_results, corr_results, ruler_results, avgdist_results):
+
+        folder_path = os.path.join(os.getcwd(), 'simulation_results')
+
+        # Create the folder if it doesn't exist
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_name = f"simulation_results_{timestamp}.xlsx"
+        file_path = os.path.join(folder_path, file_name)
+
+        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+            # Convert each list of results to a DataFrame and save to Excel
+            pd.DataFrame(box_results).to_excel(writer, sheet_name='box_counting')
+            pd.DataFrame(corr_results).to_excel(writer, sheet_name='correlation')
+            pd.DataFrame(ruler_results).to_excel(writer, sheet_name='ruler')
+            pd.DataFrame(avgdist_results).to_excel(writer, sheet_name='avgdist')
+
+        print(f"Excel file created at {file_path}")
+    
 def dist(cell1, cell2, kind='eucl'):
     """
     Calculate distance of specified kind between cell1 and cell2.
