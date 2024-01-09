@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from scipy.stats import shapiro, anderson, ttest_1samp
+import math
 import matplotlib.pyplot as plt
 import ast 
 
@@ -32,19 +34,21 @@ def slope(xs, ys, intercept_needed=False):
 file_name = 'simulation_results_20240103_174543.xlsx'  
 box_df, corr_df, ruler_df, avgdist_df = load_data_from_excel(file_name)
 
-mean_box_dim = -slope(box_df.columns.to_list()[1:-1], list(box_df.mean())[1:-1])
-
 box_df["dim"] = box_df.apply(lambda row: -slope(box_df.columns.to_list()[1:-1], row.to_list()[1:-1]), axis=1)
 corr_df["dim"] = corr_df.apply(lambda row: slope(corr_df.columns.to_list()[1:-1], row.to_list()[1:-1]), axis=1)
 ruler_df["dim"] = ruler_df.apply(lambda row: -slope(ruler_df.columns.to_list()[1:-1], row.to_list()[1:-1]), axis=1)
 avgdist_df["dim"] = avgdist_df.apply(lambda row: 1/slope(avgdist_df.columns.to_list()[2:-2], row.to_list()[2:-2]), axis=1)
 
-print("box 2^7\n", box_df.describe())
-print(mean_box_dim)
-print("corr 2^7\n", corr_df.describe())
-print("ruler 2^7\n", ruler_df.describe())
-print(avgdist_df.describe())
+print(f"n=2^7, sample size={box_df.shape[0]}")
+#print(box_df.describe())
+#print(corr_df.describe())
+#print(ruler_df.describe())
+#print(avgdist_df.describe(), '\n')
 
+print("corr", shapiro(corr_df['dim']), anderson(corr_df['dim']).statistic, anderson(corr_df['dim']).critical_values[-1])
+print("rul", shapiro(ruler_df['dim']), anderson(ruler_df['dim']).statistic, anderson(ruler_df['dim']).critical_values[-1])
+print("box", shapiro(box_df['dim']), anderson(box_df['dim']).statistic, anderson(box_df['dim']).critical_values[-1])
+print("avg", shapiro(avgdist_df['dim']), anderson(avgdist_df['dim']).statistic, anderson(avgdist_df['dim']).critical_values[-1], ttest_1samp(avgdist_df['dim'], 1.75))
 
 
 fig1, axes1 = plt.subplots(2,2,figsize=(12,12))
@@ -53,6 +57,7 @@ corr_df.hist(column="dim", ax=axes1[0,0], bins=10, grid=False,  color='#86bf91',
 ruler_df.hist(column="dim", ax=axes1[0,1], bins=10, grid=False, color='#86bf91', zorder=2, rwidth=0.9)
 box_df.hist(column="dim", ax=axes1[1,0], bins=10, grid=False,  color='#86bf91', zorder=2, rwidth=0.9)
 avgdist_df.hist(column="dim", ax=axes1[1,1], bins=10, grid=False,  color='#86bf91', zorder=2, rwidth=0.9)
+
 
 axes1[0,0].axvline(corr_df["dim"].mean(), color='red', linestyle='dashed', linewidth=2, label=f'Mean = {corr_df["dim"].mean():.2f} ± {corr_df["dim"].sem():.3f}')
 axes1[0,0].axvline(corr_df["dim"].mean()-corr_df["dim"].std(), color='orange', linestyle='dashed', linewidth=2, label=f'std = {corr_df["dim"].std():.2f}')
@@ -88,12 +93,27 @@ axes1[1,1].legend()
 
 fig1.suptitle(f'$n=2^7$, Sample size = {corr_df.shape[0]}')
 
+#original data
+orig_corr_df = corr_df.iloc[:, :-1].apply(lambda x: 2**x)
+log_mean_corr = [math.log2(x) for x in list(orig_corr_df.mean())]
+orig_ruler_df = ruler_df.iloc[:, :-1].apply(lambda x: 2**x)
+log_mean_ruler = [math.log2(x) for x in list(orig_ruler_df.mean())]
+orig_box_df = box_df.iloc[:, :-1].apply(lambda x: 2**x)
+log_mean_box = [math.log2(x) for x in list(orig_box_df.mean())]
+orig_avgdist_df = avgdist_df.iloc[:, :-1].apply(lambda x: 2**x)
+log_mean_avgdist = [math.log2(x) for x in list(orig_avgdist_df.mean())]
+
+print(orig_corr_df.describe())
+print(orig_ruler_df.describe())
+print(orig_box_df.describe())
+print(orig_avgdist_df.describe())
+
 #REGRESSION PLOTS
 fig2, axes2 = plt.subplots(2,2, figsize=(12,10))
 
 #Corr
 log_radius_sizes= corr_df.iloc[:, :-1].columns.to_list()
-log_correlation_sums = list(corr_df.iloc[:, :-1].mean())
+log_correlation_sums = log_mean_corr
 m, intercept = slope(log_radius_sizes[1:-1], log_correlation_sums[1:-1], intercept_needed=True)
 regression_line = m * np.array(log_radius_sizes) + intercept
 magic_line = (1.75) * np.array(log_radius_sizes) + intercept
@@ -108,7 +128,7 @@ axes2[0,0].grid(True)
 
 #Ruler
 log_ruler_sizes = ruler_df.iloc[:, :-1].columns.to_list()
-log_ruler_counts = list(ruler_df.iloc[:, :-1].mean())
+log_ruler_counts = log_mean_ruler
 m, intercept = slope(log_ruler_sizes[1:-1], log_ruler_counts[1:-1], intercept_needed=True)
 regression_line = m * np.array(log_ruler_sizes) + intercept
 magic_line = (-1.75) * np.array(log_ruler_sizes) + intercept
@@ -123,12 +143,12 @@ axes2[0,1].grid(True)
 
 #Box
 log_box_sizes = box_df.iloc[:, :-1].columns.to_list()
-log_box_counts = list(box_df.iloc[:, :-1].mean())
-m, intercept = np.polyfit(log_box_sizes[1:-1], log_box_counts[1:-1], 1)
+log_box_counts = log_mean_box
+m, intercept = np.polyfit(log_box_sizes[2:-3], log_box_counts[2:-3], 1)
 regression_line = m * np.array(log_box_sizes) + intercept
 magic_line = (-1.75) * np.array(log_box_sizes) + intercept
-axes2[1,0].plot(log_box_sizes[1:-1], log_box_counts[1:-1], 'o', color = 'lime')
-axes2[1,0].plot([log_box_sizes[i] for i in [0,-1]], [log_box_counts[i] for i in [0,-1]], 'o', color = 'gray')
+axes2[1,0].plot(log_box_sizes[2:-3], log_box_counts[2:-3], 'o', color = 'lime')
+axes2[1,0].plot([log_box_sizes[i] for i in [0,1,-3,-2,-1]], [log_box_counts[i] for i in [0,1,-3,-2,-1]], 'o', color = 'gray')
 axes2[1,0].set_xlabel('Log(Box Sizes)')
 axes2[1,0].set_ylabel('Log(Box Counts)')
 axes2[1,0].plot(log_box_sizes, regression_line, linestyle='--', color='red', label=f'Regression Line (Slope = {m:.2f})')
@@ -138,7 +158,7 @@ axes2[1,0].grid(True)
 
 #Avgdist
 log_k_lengths = avgdist_df.iloc[:, :-1].columns.to_list()
-log_avg_dists = list(avgdist_df.iloc[:, :-1].mean())
+log_avg_dists = log_mean_avgdist
 m, intercept = slope(log_k_lengths[2:-2], log_avg_dists[2:-2], intercept_needed=True)
 regression_line = m * np.array(log_k_lengths) + intercept
 magic_line = (1/1.75) * np.array(log_k_lengths) + intercept
