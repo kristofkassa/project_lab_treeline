@@ -5,6 +5,8 @@ import math
 import matplotlib.pyplot as plt
 import ast 
 
+n = 2**8
+
 def arrange_data(raw_df):
     cols = []
     data = []
@@ -31,7 +33,7 @@ def slope(xs, ys, intercept_needed=False):
     else:
         return slope
 
-file_name = 'simulation_results_20240103_174543.xlsx'  
+file_name = 'simulation_results_20240111_180350.xlsx' #'simulation_results_20240103_174543.xlsx'  
 box_df, corr_df, ruler_df, avgdist_df = load_data_from_excel(file_name)
 
 box_df["dim"] = box_df.apply(lambda row: -slope(box_df.columns.to_list()[1:-1], row.to_list()[1:-1]), axis=1)
@@ -39,7 +41,7 @@ corr_df["dim"] = corr_df.apply(lambda row: slope(corr_df.columns.to_list()[1:-1]
 ruler_df["dim"] = ruler_df.apply(lambda row: -slope(ruler_df.columns.to_list()[1:-1], row.to_list()[1:-1]), axis=1)
 avgdist_df["dim"] = avgdist_df.apply(lambda row: 1/slope(avgdist_df.columns.to_list()[2:-2], row.to_list()[2:-2]), axis=1)
 
-print(f"n=2^7, sample size={box_df.shape[0]}")
+print(f"n=2^{int(math.log2(n))}, sample size={box_df.shape[0]}")
 #print(box_df.describe())
 #print(corr_df.describe())
 #print(ruler_df.describe())
@@ -91,7 +93,7 @@ axes1[1,1].set_xlabel('Dimension')
 axes1[1,1].set_ylabel('Frequency')
 axes1[1,1].legend()
 
-fig1.suptitle(f'$n=2^7$, Sample size = {corr_df.shape[0]}')
+fig1.suptitle(f'$n=2^{int(math.log2(n))}$, Sample size = {corr_df.shape[0]}')
 
 #original data
 orig_corr_df = corr_df.iloc[:, :-1].apply(lambda x: 2**x)
@@ -171,6 +173,6 @@ axes2[1,1].set_ylabel('Log(Average Distances)')
 axes2[1,1].legend()
 axes2[1,1].grid(True)
 
-fig2.suptitle(f'Regression on average data points ($n=2^7$, Sample size = {corr_df.shape[0]})')
+fig2.suptitle(f'Regression on average data points ($n=2^{int(math.log2(n))}$, Sample size = {corr_df.shape[0]})')
 
 plt.show()

@@ -11,7 +11,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(9*10**8)
-        self.grid_size = 2**7
+        self.grid_size = 2**8
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
@@ -168,7 +168,7 @@ class SimulationStrategy:
                 continue
             break
 
-        print(start_i, start_j, end_i, end_j)
+       # print(start_i, start_j, end_i, end_j)
 
         # Start edge following for cylindrical case
         prev_i, prev_j = start_i, start_j
@@ -406,7 +406,7 @@ class SimulationStrategy:
                 if _ > self.grid_size ** 2: 
                     # print("INFINITE LOOP")
                     break #to avoid inifite loops in developement stage
-            print(hull_cells[i-1])
+            #print(hull_cells[i-1])
             ruler_counts.append(ruler_count)
             # print("count = ", ruler_count, "\n")
 
@@ -483,7 +483,11 @@ class SimulationStrategy:
         ruler_results = []
         avgdist_results = []
 
-        for counter in range(100):
+        sample_size = 100
+
+        print(f"Mass simulation has started with grid_size = 2^{int(math.log2(self.grid_size))}, sample size = {sample_size}.")
+        for counter in range(sample_size):
+            print(f"Iteration no. {counter+1} has begun.")
             self.cluster = np.zeros((self.grid_size, self.grid_size), dtype=bool)
             self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
             self.simulatePopularization()
