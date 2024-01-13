@@ -11,7 +11,7 @@ class SimulationStrategy:
 
     def __init__(self):
         sys.setrecursionlimit(9*10**8)
-        self.grid_size = 2**8
+        self.grid_size = 2**7
         self.occupied_cells = np.zeros((self.grid_size, self.grid_size), dtype=bool)
         self.population_data = []
         self.changes = set()
