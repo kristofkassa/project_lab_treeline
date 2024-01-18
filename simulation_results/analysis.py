@@ -200,9 +200,19 @@ axes3[0,1].axhline(1.75, color='orange', linestyle='dashed')
 axes3[1,0].axhline(1.75, color='orange', linestyle='dashed')
 axes3[1,1].axhline(1.75, color='orange', linestyle='dashed')
 
+axes3[0,0].set_xlabel('Log(Radius Sizes)')
+axes3[0,0].set_ylabel('Log(Correlation Sums)')
+axes3[0,1].set_xlabel('Log(Ruler Sizes)')
+axes3[0,1].set_ylabel('Log(Ruler Counts)')
+axes3[1,0].set_xlabel('Log(Box Sizes)')
+axes3[1,0].set_ylabel('Log(Box Counts)')
+axes3[1,1].set_xlabel('Log(k)')
+axes3[1,1].set_ylabel('Log(Average Distances)')
+
 axes3[0,0].grid(True)
 axes3[0,1].grid(True)
 axes3[1,0].grid(True)
 axes3[1,1].grid(True)
+
 
 plt.show()
